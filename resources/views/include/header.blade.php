@@ -1,7 +1,11 @@
 <nav class="shadow-md text-white bg-gray-900">
     <div class="max-w-screen-xl mx-auto px-4 py-2.5">
         <div class="flex items-center justify-between">
-            <a class="text-2xl font-bold" href="{{ route('index') }}">NextGen Computing</a>
+        <a href="{{ route('index') }}">
+          <img src="{{ asset('images/Logo.png') }}" alt="NextGen Computing Logo" class="h-12">
+        </a>
+
+
 
             <button class="lg:hidden p-2 hover:bg-gray-950 rounded-md focus:outline-none" aria-controls="navbarNav" aria-expanded="false" id="navbar-toggle">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -13,6 +17,7 @@
                 <a class="hover:text-blue-500" href="{{ route('index') }}">Home</a>
                 <a class="hover:text-blue-500" href="{{ route('build.index') }}">Build PC</a> <!-- Updated link to PC building page -->
                 <a class="hover:text-blue-500" href="{{ route('secondhand.index') }}">Market</a>
+                <a class="hover:text-blue-500" href="{{ route('quotation.index') }}">Quotation Genarator</a>
 
                 @if (Auth::check())
                     @if (Auth::user()->role === 'seller')

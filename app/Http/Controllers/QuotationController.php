@@ -473,6 +473,11 @@ class QuotationController extends Controller
             $compatibility['warnings'][] = "Power supply wattage ({$build['power_supply']->wattage}W) is below recommended ({$recommended_wattage}W) for optimal operation.";
         }
 
+        // Check if the build exceeds the budget
+        if ($build['remaining_budget'] < 0) {
+            $compatibility['warnings'][] = "This build exceeds your budget by " . abs($build['remaining_budget']) . " LKR";
+        }
+
         return $compatibility;
     }
 }
