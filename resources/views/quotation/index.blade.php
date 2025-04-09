@@ -16,7 +16,6 @@
             font-style: normal;
         }
 
-        /* Base styles for both web and PDF */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -49,7 +48,6 @@
             background-color: #f2f2f2;
         }
 
-        /* Web-specific styles */
         @if(!isset($is_pdf))
             body {
                 background-color: #f3f4f6;
@@ -69,7 +67,6 @@
             }
         @endif
 
-        /* PDF-specific styles */
         @media print {
             .no-print {
                 display: none !important;
@@ -133,11 +130,15 @@
 @include('include.header')
 
     <div class="container mx-auto px-4 py-8">
-        <!-- Form Section -->
+        @if (session('success'))
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+                {{ session('success') }}
+            </div>
+        @endif
+
         @if(!isset($is_pdf))
             <h1 class="text-3xl font-bold text-center mb-8">BEGINNER - PC BUILDING</h1>
 
-            <!-- Form Card -->
             <div class="max-w-2xl mx-auto bg-gray-50 rounded-3xl p-8 shadow-lg mb-16 no-print">
                 @if ($errors->any())
                     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
@@ -152,7 +153,6 @@
                 <form id="quotationForm" action="{{ route('generate.quotation') }}" method="POST">
                     @csrf
 
-                    <!-- Use Case Selection -->
                     <div class="mb-6">
                         <label for="use_case" class="block font-bold mb-2">FIELD THE PC IS USED FOR</label>
                         <select id="use_case" name="use_case" required
@@ -163,7 +163,6 @@
                         </select>
                     </div>
 
-                    <!-- Budget Input -->
                     <div class="mb-8">
                         <label for="budget" class="block font-bold mb-2">TOTAL BUDGET FOR THE PC (MINIMUM BUDGET OF 200,000)</label>
                         <input type="number" id="budget" name="budget" min="200000" required
@@ -171,7 +170,6 @@
                             value="{{ old('budget', isset($budget) ? $budget : '250000') }}">
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="text-center">
                         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-12 rounded-full">
                             SUBMIT FORM
@@ -181,11 +179,9 @@
             </div>
         @endif
 
-        <!-- Results Section - Only show if we have build results -->
         @if(isset($builds))
             <h2 class="text-3xl font-bold text-center mb-8 font-['PixelFont']">CREATED QUOTATIONS</h2>
 
-            <!-- Display each build in a card -->
             @foreach ($builds as $spec => $build)
                 <div class="bg-black text-white rounded-3xl p-8 mb-6">
                     <h3 class="text-2xl font-bold text-center mb-6">{{ strtoupper($spec) }} SPEC BUILD</h3>
@@ -197,12 +193,22 @@
                             <a href="{{ route('quotation.download', ['spec' => $spec]) }}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full">
                                 Download Quotation
                             </a>
+                            @if (auth()->check())
+                                <form action="{{ route('quotation.send-email', ['spec' => $spec]) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full">
+                                        Continue with the Build
+                                    </button>
+                                </form>
+                            @else
+                                <a href="{{ route('login') }}?redirect={{ urlencode(route('quotation.index')) }}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full">
+                                    Continue with the Build (Login Required)
+                                </a>
+                            @endif
                         </div>
                     @endif
 
-                    <!-- Build Details -->
                     <div id="details-{{ $spec }}" class="mt-6 build-details {{ isset($is_pdf) ? 'active' : 'hidden' }}">
-                        <!-- Component Details -->
                         <div class="bg-gray-800 p-4 rounded-lg mb-4">
                             <h4 class="text-lg font-bold mb-3">Components</h4>
                             <div class="overflow-x-auto">
@@ -250,7 +256,6 @@
                             </div>
                         </div>
 
-                        <!-- Summary -->
                         <div class="bg-gray-800 p-4 rounded-lg mb-4">
                             <h4 class="text-lg font-bold mb-3">Summary</h4>
                             <p><strong>Total Price:</strong> {{ $build['total_price'] }} LKR</p>
@@ -258,7 +263,6 @@
                             <p><strong>Budget Used:</strong> {{ $build['budget_used_percentage'] }}%</p>
                         </div>
 
-                        <!-- Price Breakdown -->
                         <div class="bg-gray-800 p-4 rounded-lg mb-4">
                             <h4 class="text-lg font-bold mb-3">Price Breakdown</h4>
                             <ul class="list-disc pl-5">
@@ -268,7 +272,6 @@
                             </ul>
                         </div>
 
-                        <!-- Compatibility Check -->
                         <div class="bg-gray-800 p-4 rounded-lg">
                             <h4 class="text-lg font-bold mb-3">Compatibility Check</h4>
                             @if ($build['compatibility']['is_compatible'])
@@ -303,7 +306,6 @@
                 </div>
             @endforeach
 
-            <!-- Display Build Errors (if any) -->
             @if (!empty($build_errors))
                 <div class="mt-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
                     <h4 class="font-bold">Build Errors</h4>
@@ -318,7 +320,6 @@
     </div>
 
     @if(!isset($is_pdf))
-        <!-- Scripts -->
         <script>
             function toggleBuildDetails(spec) {
                 const detailsElement = document.getElementById('details-' + spec);
@@ -331,7 +332,6 @@
                 }
             }
 
-            // Scroll to results section if builds are present
             document.addEventListener('DOMContentLoaded', function() {
                 const buildsSection = document.getElementById('builds-section');
                 const urlParams = new URLSearchParams(window.location.search);

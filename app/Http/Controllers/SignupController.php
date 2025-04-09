@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -34,6 +35,13 @@ class SignupController extends Controller
         $user = User::create($userData);
         \Auth::login($user);
 
+        // Check if a redirect parameter is present in the request
+        if ($request->has('redirect')) {
+            return redirect()->to($request->input('redirect'))
+                ->with('success', 'Account created successfully!');
+        }
+
+        // Fallback to role-based redirect if no redirect parameter
         return redirect()->route($validatedData['role'] === 'customer' ? 'index' : 'sellers.dashboard')
             ->with('success', 'Account created successfully!');
     }

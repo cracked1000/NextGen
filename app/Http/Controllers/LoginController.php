@@ -23,6 +23,13 @@ class LoginController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
+
+            // Check if a redirect parameter is present in the request
+            if ($request->has('redirect')) {
+                return redirect()->to($request->input('redirect'));
+            }
+
+            // Fallback to role-based redirects if no redirect parameter
             if ($user->role === 'seller') {
                 return redirect()->route('sellers.dashboard');
             } elseif ($user->role === 'admin') {
@@ -47,5 +54,3 @@ class LoginController extends Controller
         return redirect('/')->with('success', 'You have been logged out.');
     }
 }
-
-

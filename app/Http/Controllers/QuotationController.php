@@ -11,22 +11,24 @@ use App\Models\Storage;
 use App\Models\PowerSupply;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BuildDetailsEmail;
 use PDF;
 
 class QuotationController extends Controller
 {
     private $allocations = [
         'gaming' => [
-            'cpu' => 0.2,
-            'motherboard' => 0.1,
-            'gpu' => 0.4,
-            'ram' => 0.1,
-            'storage' => 0.1,
-            'power_supply' => 0.1,
+            'cpu' => 0.25,
+            'motherboard' => 0.15,
+            'gpu' => 0.30,
+            'ram' => 0.15,
+            'storage' => 0.10,
+            'power_supply' => 0.05,
         ],
         'video_editing' => [
-            'cpu' => 0.3,
-            'motherboard' => 0.1,
+            'cpu' => 0.30,
+            'motherboard' => 0.10,
             'gpu' => 0.15,
             'ram' => 0.25,
             'storage' => 0.15,
@@ -34,18 +36,18 @@ class QuotationController extends Controller
         ],
         'general_use' => [
             'cpu' => 0.25,
-            'motherboard' => 0.2,
-            'gpu' => 0.1,
+            'motherboard' => 0.15,
+            'gpu' => 0.20,
             'ram' => 0.15,
             'storage' => 0.15,
-            'power_supply' => 0.15,
+            'power_supply' => 0.10,
         ],
         'workstation' => [
             'cpu' => 0.35,
-            'motherboard' => 0.1,
-            'gpu' => 0.2,
-            'ram' => 0.2,
-            'storage' => 0.1,
+            'motherboard' => 0.10,
+            'gpu' => 0.20,
+            'ram' => 0.20,
+            'storage' => 0.10,
             'power_supply' => 0.05,
         ],
     ];
@@ -57,10 +59,15 @@ class QuotationController extends Controller
     ];
 
     private $budget_thresholds = [
-        'very_low' => 100000,
-        'low' => 900,
-        'medium' => 1500
+        'very_low' => 200000,
+        'low' => 300000,
+        'medium' => 500000,
     ];
+
+    public function __construct()
+    {
+        $this->middleware('auth')->only(['sendBuildEmail']);
+    }
 
     public function index()
     {
@@ -85,6 +92,7 @@ class QuotationController extends Controller
         $budget = $request->budget;
         $use_case = $request->use_case;
 
+        // Fallback to general_use if use_case is invalid
         if (!isset($this->allocations[$use_case])) {
             $use_case = 'general_use';
             Log::warning("Invalid use case '{$request->use_case}' selected. Using 'general_use' as fallback.");
@@ -92,6 +100,7 @@ class QuotationController extends Controller
 
         $allocation = $this->allocations[$use_case];
 
+        // Apply custom allocation if provided and valid
         if ($request->has('custom_allocation') && $request->custom_allocation) {
             $custom_allocation = [
                 'cpu' => $request->cpu_allocation,
@@ -108,6 +117,8 @@ class QuotationController extends Controller
 
             if ($has_all_components && $is_valid_sum) {
                 $allocation = $custom_allocation;
+            } else {
+                Log::warning("Invalid custom allocation provided. Using default allocation for {$use_case}.");
             }
         }
 
@@ -122,8 +133,8 @@ class QuotationController extends Controller
 
             if ($budget <= $this->budget_thresholds['very_low']) {
                 try {
-                    $builds['basic'] = $this->generateBuild($budget, $allocation, 0.5);
-                    $budget_message = "Based on your limited budget of $" . number_format($budget, 2) .
+                    $builds['basic'] = $this->generateBuild($budget, $allocation, 0.5, $use_case);
+                    $budget_message = "Based on your limited budget of LKR " . number_format($budget, 2) .
                                      ", we've generated a basic build that meets minimum requirements for {$use_case}.";
                 } catch (\Exception $e) {
                     $build_errors['basic'] = $e->getMessage();
@@ -132,7 +143,7 @@ class QuotationController extends Controller
             } else {
                 foreach ($specs_to_generate as $spec => $factor) {
                     try {
-                        $builds[$spec] = $this->generateBuild($budget, $allocation, $factor);
+                        $builds[$spec] = $this->generateBuild($budget, $allocation, $factor, $use_case);
                     } catch (\Exception $e) {
                         $build_errors[$spec] = $e->getMessage();
                         Log::error("Error generating {$spec} build: " . $e->getMessage());
@@ -140,19 +151,30 @@ class QuotationController extends Controller
                 }
 
                 if ($budget <= $this->budget_thresholds['low']) {
-                    $budget_message = "Your budget of $" . number_format($budget, 2) .
+                    $budget_message = "Your budget of LKR " . number_format($budget, 2) .
                                      " allows for a basic {$use_case} build. Consider increasing your budget for more options.";
                 } elseif ($budget <= $this->budget_thresholds['medium']) {
-                    $budget_message = "Your budget of $" . number_format($budget, 2) .
+                    $budget_message = "Your budget of LKR " . number_format($budget, 2) .
                                      " allows for low to medium range builds for {$use_case}.";
+                } else {
+                    $budget_message = "Your budget of LKR " . number_format($budget, 2) .
+                                     " allows for a range of builds for {$use_case}.";
                 }
             }
 
             DB::commit();
 
-            if (count($builds) === 0) {
+            if (empty($builds)) {
                 return back()->withErrors(['error' => 'Unable to generate any builds. Please try a different budget or use case.'])
                             ->withInput();
+            }
+
+            // Provide budget overrun feedback if necessary
+            foreach ($builds as $spec => $build) {
+                if ($build['remaining_budget'] < 0) {
+                    $budget_message .= " The {$spec} build exceeds your budget by LKR " . number_format(abs($build['remaining_budget']), 2) .
+                                      ". Consider increasing your budget or adjusting your use case.";
+                }
             }
 
             session()->put('quotation_data', compact('builds', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message'));
@@ -186,17 +208,43 @@ class QuotationController extends Controller
             return redirect()->route('quotation.index')->withErrors(['error' => "No {$spec} spec build available to download."]);
         }
 
-        // Create a new builds array with only the selected spec
-        $selected_build = [$spec => $builds[$spec]];
-
-        // Pass a flag to indicate this is for PDF generation
         $is_pdf = true;
 
         $pdf = PDF::loadView('quotation.index', compact('builds', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message', 'is_pdf'));
-
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->download("pc_build_quotation_{$spec}.pdf");
+    }
+
+    public function sendBuildEmail(Request $request, $spec)
+    {
+        $data = session('quotation_data');
+
+        if (!$data) {
+            return redirect()->route('quotation.index')->withErrors(['error' => 'No quotation data available to send. Please generate a new quotation.']);
+        }
+
+        $builds = $data['builds'];
+        $use_case = $data['use_case'];
+
+        if (!isset($builds[$spec])) {
+            return redirect()->route('quotation.index')->withErrors(['error' => "No {$spec} spec build available to send."]);
+        }
+
+        $build = $builds[$spec];
+
+        $user = $request->user();
+        if (!$user || !$user->email) {
+            return redirect()->route('quotation.index')->withErrors(['error' => 'User email not found. Please ensure you are logged in.']);
+        }
+
+        try {
+            Mail::to($user->email)->send(new BuildDetailsEmail($build, $spec, $use_case));
+            return redirect()->route('quotation.index')->with('success', 'Build details have been sent to your email!');
+        } catch (\Exception $e) {
+            Log::error('Error sending build email: ' . $e->getMessage());
+            return redirect()->route('quotation.index')->withErrors(['error' => 'Failed to send the email. Please try again later.']);
+        }
     }
 
     private function getSpecLevelsForBudget($budget)
@@ -215,213 +263,198 @@ class QuotationController extends Controller
         }
     }
 
-    private function generateBuild($budget, $allocation, $factor)
+    private function generateBuild($budget, $allocation, $factor, $use_case)
     {
         $build = [];
         $total_price = 0;
         $remaining_budget = $budget;
 
-        $cpu_budget = $factor * $allocation['cpu'] * $budget;
-        $cpu = $this->selectComponent(Cpu::class, $cpu_budget, [], 'CPU');
-        $build['cpu'] = $cpu;
-        $component_price = $cpu->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
+        // Define essential components based on use case
+        $essential_components = $this->getEssentialComponents($use_case);
 
-        $motherboard_budget = $factor * $allocation['motherboard'] * $budget;
-        $motherboard_filters = [
-            ['field' => 'socket_type', 'value' => $cpu->socket_type, 'operator' => '=']
-        ];
-        $motherboard = $this->selectComponent(Motherboard::class, $motherboard_budget, $motherboard_filters, 'motherboard');
-        $build['motherboard'] = $motherboard;
-        $component_price = $motherboard->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
-
-        $ram_budget = $factor * $allocation['ram'] * $budget;
-        $ram_filters = [];
-
-        if (!is_null($motherboard->ram_type)) {
-            $ram_filters[] = ['field' => 'ram_type', 'value' => $motherboard->ram_type, 'operator' => '='];
-        }
-        if (!is_null($motherboard->ram_speed)) {
-            $ram_filters[] = ['field' => 'ram_speed', 'value' => $motherboard->ram_speed, 'operator' => '<='];
-        }
-        if (!is_null($motherboard->ram_slots)) {
-            $ram_filters[] = ['field' => 'stick_count', 'value' => $motherboard->ram_slots, 'operator' => '<='];
+        // Select essential components first to ensure core functionality
+        foreach ($essential_components as $component) {
+            $component_budget = $factor * $allocation[$component] * $budget;
+            $adjusted_budget = min($component_budget, $remaining_budget);
+            if ($adjusted_budget <= 0) {
+                throw new \Exception("Insufficient remaining budget to select {$component}.");
+            }
+            $filters = $this->getFiltersForComponent($component, $build);
+            $selected_component = $this->selectComponent(
+                $this->getModelClass($component),
+                $adjusted_budget,
+                $filters,
+                $component,
+                $use_case
+            );
+            $build[$component] = $selected_component;
+            $component_price = $selected_component->price ?? 0;
+            $total_price += $component_price;
+            $remaining_budget -= $component_price;
         }
 
-        $ram = $this->selectComponent(Ram::class, $ram_budget, $ram_filters, 'RAM');
-        $build['ram'] = $ram;
-        $component_price = $ram->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
-
-        $gpu_budget = $factor * $allocation['gpu'] * $budget;
-        $gpu_filters = [];
-
-        if (!is_null($motherboard->pcie_version)) {
-            $gpu_filters[] = ['field' => 'pcie_version', 'value' => $motherboard->pcie_version, 'operator' => '<='];
+        // Select non-essential components with remaining budget
+        $non_essential_components = array_diff(array_keys($allocation), $essential_components);
+        foreach ($non_essential_components as $component) {
+            $component_budget = $factor * $allocation[$component] * $budget;
+            $adjusted_budget = min($component_budget, $remaining_budget);
+            if ($adjusted_budget <= 0) {
+                // Skip if no budget remains; assign a placeholder
+                $build[$component] = $this->getCheapestComponent($this->getModelClass($component));
+                continue;
+            }
+            $filters = $this->getFiltersForComponent($component, $build);
+            $selected_component = $this->selectComponent(
+                $this->getModelClass($component),
+                $adjusted_budget,
+                $filters,
+                $component,
+                $use_case
+            );
+            $build[$component] = $selected_component;
+            $component_price = $selected_component->price ?? 0;
+            $total_price += $component_price;
+            $remaining_budget -= $component_price;
         }
 
-        $gpu = $this->selectComponent(Gpu::class, $gpu_budget, $gpu_filters, 'GPU');
-        $build['gpu'] = $gpu;
-        $component_price = $gpu->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
-
-        $storage_budget = $factor * $allocation['storage'] * $budget;
-        $storage_filters = [];
-
-        if (!is_null($motherboard->m2_slots) && !is_null($motherboard->m2_nvme_support) && !is_null($motherboard->sata_slots)) {
-            $has_storage_compatibility_constraints = true;
-        } else {
-            $has_storage_compatibility_constraints = false;
-        }
-
-        $storage = $this->selectStorageComponent($storage_budget, $motherboard, $has_storage_compatibility_constraints);
-        $build['storage'] = $storage;
-        $component_price = $storage->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
-
-        $power_supply_budget = $factor * $allocation['power_supply'] * $budget;
-        $power_supply_filters = [];
-
-        if (!is_null($motherboard->form_factor)) {
-            $power_supply_filters[] = ['field' => 'form_factor', 'value' => $motherboard->form_factor, 'operator' => '='];
-        }
-
-        $total_power_requirement = ($cpu->power_requirement ?? 0) + ($gpu->power_requirement ?? 0);
-        if ($total_power_requirement > 0) {
-            $power_supply_filters[] = ['field' => 'wattage', 'value' => ceil($total_power_requirement * 1.2), 'operator' => '>='];
-        }
-
-        $power_supply = $this->selectComponent(PowerSupply::class, $power_supply_budget, $power_supply_filters, 'power supply');
-        $build['power_supply'] = $power_supply;
-        $component_price = $power_supply->price ?? 0;
-        $total_price += $component_price;
-        $remaining_budget -= $component_price;
-
+        // Summarize the build
         $build['total_price'] = $total_price;
         $build['remaining_budget'] = $remaining_budget;
-        $build['budget_used_percentage'] = round(($total_price / $budget) * 100, 2);
+        $build['budget_used_percentage'] = $budget > 0 ? round(($total_price / $budget) * 100, 2) : 0;
 
-        $build['price_breakdown'] = [
-            'cpu' => ($cpu->price ?? 0) / $total_price * 100,
-            'motherboard' => ($motherboard->price ?? 0) / $total_price * 100,
-            'ram' => ($ram->price ?? 0) / $total_price * 100,
-            'gpu' => ($gpu->price ?? 0) / $total_price * 100,
-            'storage' => ($storage->price ?? 0) / $total_price * 100,
-            'power_supply' => ($power_supply->price ?? 0) / $total_price * 100,
-        ];
+        $build['price_breakdown'] = [];
+        foreach ($allocation as $component => $percentage) {
+            $build['price_breakdown'][$component] = $total_price > 0 ? ($build[$component]->price ?? 0) / $total_price * 100 : 0;
+        }
 
-        $build['compatibility'] = $this->checkBuildCompatibility($build);
+        $build['compatibility'] = $this->checkBuildCompatibility($build, $use_case);
 
         return $build;
     }
 
-    private function selectComponent($model_class, $max_budget, $filters = [], $component_name = 'component')
+    private function selectComponent($model_class, $max_budget, $filters = [], $component_name = 'component', $use_case = 'general_use')
     {
         $query = $model_class::query();
 
+        // Apply compatibility filters (e.g., socket type for motherboard)
         foreach ($filters as $filter) {
             if (isset($filter['operator']) && isset($filter['field']) && isset($filter['value'])) {
                 $query->where($filter['field'], $filter['operator'], $filter['value']);
             }
         }
 
+        // Apply use-case specific sorting
+        if ($component_name == 'cpu') {
+            if ($use_case == 'gaming' && property_exists($model_class, 'clock_speed')) {
+                $query->orderByDesc('clock_speed');
+            } elseif ($use_case == 'video_editing' && property_exists($model_class, 'core_count')) {
+                $query->orderByDesc('core_count');
+            }
+        } elseif ($component_name == 'ram') {
+            if ($use_case == 'video_editing' && property_exists($model_class, 'capacity')) {
+                $query->orderByDesc('capacity');
+            }
+        }
+
+        // Try to find the best component within budget
         if ($max_budget > 0) {
             $budget_query = clone $query;
-            $budget_query->where('price', '<=', $max_budget);
-            $component = $budget_query->orderByDesc('price')->first();
-
+            $component = $budget_query->where('price', '<=', $max_budget)
+                                     ->orderBy('price', 'desc') // Best value within budget
+                                     ->first();
             if ($component) {
                 return $component;
             }
         }
 
+        // Fallback: Cheapest compatible component
         $component = $query->orderBy('price', 'asc')->first();
-
         if ($component) {
+            Log::warning("No {$component_name} found within budget of LKR " . number_format($max_budget, 2) . ". Using cheapest compatible option.");
             return $component;
         }
 
-        if (count($filters) > 0) {
-            for ($i = count($filters) - 1; $i >= 0; $i--) {
-                $reduced_filters = array_slice($filters, 0, $i);
-                try {
-                    return $this->selectComponent($model_class, $max_budget, $reduced_filters, $component_name);
-                } catch (\Exception $e) {
-                    continue;
-                }
-            }
-        }
-
-        $any_component = $model_class::first();
-
+        // Last resort: Cheapest component ignoring filters
+        $any_component = $model_class::orderBy('price', 'asc')->first();
         if ($any_component) {
-            Log::warning("No compatible {$component_name} found with given filters. Using first available instead.");
+            Log::warning("No compatible {$component_name} found within budget or filters. Using cheapest available.");
             return $any_component;
         }
 
         throw new \Exception("No {$component_name} found in the database.");
     }
 
-    private function selectStorageComponent($max_budget, $motherboard, $has_compatibility_constraints)
+    private function getCheapestComponent($model_class)
     {
-        $query = Storage::query();
-
-        if ($max_budget > 0) {
-            $budget_query = clone $query;
-            $budget_query->where('price', '<=', $max_budget);
-
-            if ($has_compatibility_constraints) {
-                $budget_query->where(function ($q) use ($motherboard) {
-                    if ($motherboard->m2_slots > 0 && $motherboard->m2_nvme_support) {
-                        $q->orWhere('is_nvme', true);
-                    }
-                    if ($motherboard->sata_slots > 0) {
-                        $q->orWhere('is_nvme', false);
-                    }
-                });
-            }
-
-            $storage = $budget_query->orderByDesc('price')->first();
-
-            if ($storage) {
-                return $storage;
-            }
-        }
-
-        if ($has_compatibility_constraints) {
-            $query->where(function ($q) use ($motherboard) {
-                if ($motherboard->m2_slots > 0 && $motherboard->m2_nvme_support) {
-                    $q->orWhere('is_nvme', true);
-                }
-                if ($motherboard->sata_slots > 0) {
-                    $q->orWhere('is_nvme', false);
-                }
-            });
-        }
-
-        $storage = $query->orderBy('price', 'asc')->first();
-
-        if ($storage) {
-            return $storage;
-        }
-
-        $any_storage = Storage::first();
-
-        if ($any_storage) {
-            Log::warning("No compatible storage found. Using first available instead.");
-            return $any_storage;
-        }
-
-        throw new \Exception("No storage devices found in the database.");
+        return $model_class::orderBy('price', 'asc')->first();
     }
 
-    private function checkBuildCompatibility($build)
+    private function getEssentialComponents($use_case)
+    {
+        switch ($use_case) {
+            case 'gaming':
+                return ['cpu', 'gpu', 'ram'];
+            case 'video_editing':
+                return ['cpu', 'ram', 'storage'];
+            case 'general_use':
+                return ['cpu', 'ram'];
+            case 'workstation':
+                return ['cpu', 'ram'];
+            default:
+                return ['cpu', 'ram'];
+        }
+    }
+
+    private function getFiltersForComponent($component, $build)
+    {
+        $filters = [];
+
+        if ($component === 'motherboard' && isset($build['cpu'])) {
+            $filters[] = ['field' => 'socket_type', 'value' => $build['cpu']->socket_type, 'operator' => '='];
+        } elseif ($component === 'ram' && isset($build['motherboard'])) {
+            if (!is_null($build['motherboard']->ram_type)) {
+                $filters[] = ['field' => 'ram_type', 'value' => $build['motherboard']->ram_type, 'operator' => '='];
+            }
+            if (!is_null($build['motherboard']->ram_speed)) {
+                $filters[] = ['field' => 'ram_speed', 'value' => $build['motherboard']->ram_speed, 'operator' => '<='];
+            }
+            if (!is_null($build['motherboard']->ram_slots)) {
+                $filters[] = ['field' => 'stick_count', 'value' => $build['motherboard']->ram_slots, 'operator' => '<='];
+            }
+        } elseif ($component === 'gpu' && isset($build['motherboard'])) {
+            if (!is_null($build['motherboard']->pcie_version)) {
+                $filters[] = ['field' => 'pcie_version', 'value' => $build['motherboard']->pcie_version, 'operator' => '<='];
+            }
+        } elseif ($component === 'storage' && isset($build['motherboard'])) {
+            $filters[] = ['field' => 'is_nvme', 'value' => $build['motherboard']->m2_slots > 0 && $build['motherboard']->m2_nvme_support, 'operator' => '='];
+        } elseif ($component === 'power_supply' && isset($build['motherboard'])) {
+            if (!is_null($build['motherboard']->form_factor)) {
+                $filters[] = ['field' => 'form_factor', 'value' => $build['motherboard']->form_factor, 'operator' => '='];
+            }
+        }
+
+        return $filters;
+    }
+
+    private function getModelClass($component)
+    {
+        $model_classes = [
+            'cpu' => Cpu::class,
+            'motherboard' => Motherboard::class,
+            'gpu' => Gpu::class,
+            'ram' => Ram::class,
+            'storage' => Storage::class,
+            'power_supply' => PowerSupply::class,
+        ];
+
+        if (!isset($model_classes[$component])) {
+            throw new \Exception("Invalid component: {$component}");
+        }
+
+        return $model_classes[$component];
+    }
+
+    private function checkBuildCompatibility($build, $use_case = 'general_use')
     {
         $compatibility = [
             'is_compatible' => true,
@@ -429,18 +462,20 @@ class QuotationController extends Controller
             'errors' => []
         ];
 
+        // Socket compatibility
         if ($build['cpu']->socket_type !== $build['motherboard']->socket_type) {
             $compatibility['is_compatible'] = false;
             $compatibility['errors'][] = "CPU socket type ({$build['cpu']->socket_type}) does not match motherboard socket type ({$build['motherboard']->socket_type}).";
         }
 
+        // RAM compatibility
         if (!is_null($build['motherboard']->ram_type) && $build['ram']->ram_type !== $build['motherboard']->ram_type) {
             $compatibility['is_compatible'] = false;
             $compatibility['errors'][] = "RAM type ({$build['ram']->ram_type}) is not compatible with motherboard RAM type ({$build['motherboard']->ram_type}).";
         }
 
         if (!is_null($build['motherboard']->ram_speed) && $build['ram']->ram_speed > $build['motherboard']->ram_speed) {
-            $compatibility['warnings'][] = "RAM speed ({$build['ram']->ram_speed}) exceeds motherboard's supported speed ({$build['motherboard']->ram_speed}). RAM will be downclocked.";
+            $compatibility['warnings'][] = "RAM speed ({$build['ram']->ram_speed} MHz) exceeds motherboard's supported speed ({$build['motherboard']->ram_speed} MHz). RAM will be downclocked.";
         }
 
         if (!is_null($build['motherboard']->ram_slots) && $build['ram']->stick_count > $build['motherboard']->ram_slots) {
@@ -448,10 +483,12 @@ class QuotationController extends Controller
             $compatibility['errors'][] = "RAM stick count ({$build['ram']->stick_count}) exceeds available motherboard slots ({$build['motherboard']->ram_slots}).";
         }
 
+        // GPU compatibility
         if (!is_null($build['motherboard']->pcie_version) && $build['gpu']->pcie_version > $build['motherboard']->pcie_version) {
             $compatibility['warnings'][] = "GPU PCIe version ({$build['gpu']->pcie_version}) is higher than motherboard PCIe version ({$build['motherboard']->pcie_version}). GPU will operate at reduced bandwidth.";
         }
 
+        // Storage compatibility
         if ($build['storage']->is_nvme && (!$build['motherboard']->m2_slots || !$build['motherboard']->m2_nvme_support)) {
             $compatibility['is_compatible'] = false;
             $compatibility['errors'][] = "NVMe storage selected but motherboard doesn't support NVMe or has no M.2 slots.";
@@ -462,20 +499,44 @@ class QuotationController extends Controller
             $compatibility['errors'][] = "SATA storage selected but motherboard has no SATA slots.";
         }
 
+        // Power supply compatibility
         $total_power_requirement = ($build['cpu']->power_requirement ?? 0) + ($build['gpu']->power_requirement ?? 0);
+        $power_safety_margin = ($use_case == 'gaming' || $use_case == 'video_editing') ? 1.3 : 1.2;
+        $recommended_wattage = ceil($total_power_requirement * $power_safety_margin);
         if ($build['power_supply']->wattage < $total_power_requirement) {
             $compatibility['is_compatible'] = false;
             $compatibility['errors'][] = "Power supply wattage ({$build['power_supply']->wattage}W) is insufficient for the system's power requirements ({$total_power_requirement}W).";
+        } elseif ($build['power_supply']->wattage < $recommended_wattage) {
+            $compatibility['warnings'][] = "Power supply wattage ({$build['power_supply']->wattage}W) is below recommended ({$recommended_wattage}W) for optimal {$use_case} performance.";
         }
 
-        $recommended_wattage = ceil($total_power_requirement * 1.2);
-        if ($build['power_supply']->wattage < $recommended_wattage) {
-            $compatibility['warnings'][] = "Power supply wattage ({$build['power_supply']->wattage}W) is below recommended ({$recommended_wattage}W) for optimal operation.";
-        }
-
-        // Check if the build exceeds the budget
+        // Budget check
         if ($build['remaining_budget'] < 0) {
-            $compatibility['warnings'][] = "This build exceeds your budget by " . abs($build['remaining_budget']) . " LKR";
+            $compatibility['warnings'][] = "This build exceeds your budget by LKR " . number_format(abs($build['remaining_budget']), 2) . ".";
+        }
+
+        // Performance checks based on use case
+        if ($use_case === 'general_use') {
+            if (property_exists($build['ram'], 'capacity') && $build['ram']->capacity < 8) {
+                $compatibility['warnings'][] = "For general use, at least 8GB RAM is recommended. Current selection has {$build['ram']->capacity}GB.";
+            }
+            if (property_exists($build['storage'], 'capacity') && $build['storage']->capacity < 256) {
+                $compatibility['warnings'][] = "For general use, at least 256GB storage is recommended. Current selection has {$build['storage']->capacity}GB.";
+            }
+        } elseif ($use_case === 'gaming') {
+            if (property_exists($build['gpu'], 'vram') && $build['gpu']->vram < 4) {
+                $compatibility['warnings'][] = "For gaming, a GPU with at least 4GB VRAM is recommended. Current selection has {$build['gpu']->vram}GB.";
+            }
+            if (property_exists($build['ram'], 'capacity') && $build['ram']->capacity < 16) {
+                $compatibility['warnings'][] = "For gaming, at least 16GB RAM is recommended. Current selection has {$build['ram']->capacity}GB.";
+            }
+        } elseif ($use_case === 'video_editing') {
+            if (property_exists($build['ram'], 'capacity') && $build['ram']->capacity < 16) {
+                $compatibility['warnings'][] = "For video editing, at least 16GB RAM is recommended. Current selection has {$build['ram']->capacity}GB.";
+            }
+            if (property_exists($build['storage'], 'capacity') && $build['storage']->capacity < 512) {
+                $compatibility['warnings'][] = "For video editing, at least 512GB storage is recommended. Current selection has {$build['storage']->capacity}GB.";
+            }
         }
 
         return $compatibility;

@@ -94,13 +94,17 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // API Routes for Component Compatibility
-Route::prefix('api')->middleware(['auth'])->group(function () {
-    Route::get('/compatible-motherboards/{cpuId}', [BuildController::class, 'getCompatibleMotherboards'])->name('api.compatible-motherboards');
-    Route::get('/compatible-gpus/{cpuId}/{motherboardId}', [BuildController::class, 'getCompatibleGpus'])->name('api.compatible-gpus');
-    Route::get('/compatible-rams/{motherboardId}', [BuildController::class, 'getCompatibleRams'])->name('api.compatible-rams');
-    Route::get('/compatible-storages/{ramId}', [BuildController::class, 'getCompatibleStorages'])->name('api.compatible-storages');
-    Route::get('/compatible-power-supplies/{storageId}', [BuildController::class, 'getCompatiblePowerSupplies'])->name('api.compatible-power-supplies');
-});
+
+
+
+
+Route::get('/build', [BuildController::class, 'index'])->name('build.index');
+Route::get('/build/motherboards/{cpuId}', [BuildController::class, 'getCompatibleMotherboards']);
+Route::get('/build/gpus/{cpuId}/{motherboardId}', [BuildController::class, 'getCompatibleGpus']);
+Route::get('/build/rams/{motherboardId}', [BuildController::class, 'getCompatibleRams']);
+Route::get('/build/storages/{ramId}', [BuildController::class, 'getCompatibleStorages']);
+Route::get('/build/power-supplies/{storageId}', [BuildController::class, 'getCompatiblePowerSupplies']);
+Route::post('/build/save', [BuildController::class, 'saveBuild'])->name('build.save');
 
 // Customer Dashboard Routes
 Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])
@@ -131,6 +135,8 @@ Route::get('/customer/orders', function () {
 // routes/web.php
 
 
+
 Route::get('/quotation', [QuotationController::class, 'index'])->name('quotation.index');
 Route::post('/quotation/generate', [QuotationController::class, 'generate'])->name('generate.quotation');
 Route::get('/quotation/download/{spec}', [QuotationController::class, 'download'])->name('quotation.download');
+Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBuildEmail'])->name('quotation.send-email');
