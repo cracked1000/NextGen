@@ -36,7 +36,23 @@ Route::middleware('auth')->group(function () {
     // Build Routes
     Route::get('/build', [BuildController::class, 'index'])->name('build.index');
     Route::get('/build/purchase/{id}', [BuildController::class, 'purchase'])->name('build.purchase');
-    Route::post('/build/save', [BuildController::class, 'saveBuild'])->name('build.save'); // Added this line
+    Route::post('/build/save', [BuildController::class, 'saveBuild'])->name('build.save');
+    Route::post('/build/update-progress', [BuildController::class, 'updateBuildProgress'])->name('build.update_progress');
+    Route::get('/build/motherboards/{cpuId}', [BuildController::class, 'getCompatibleMotherboards']);
+    Route::get('/build/gpus/{cpuId}/{motherboardId}', [BuildController::class, 'getCompatibleGpus']);
+    Route::get('/build/rams/{motherboardId}', [BuildController::class, 'getCompatibleRams']);
+    Route::get('/build/storages/{ramId}', [BuildController::class, 'getCompatibleStorages']);
+    Route::get('/build/power-supplies/{storageId}', [BuildController::class, 'getCompatiblePowerSupplies']);
+    Route::get('/build/{buildId}/generate-quotation', [BuildController::class, 'generateQuotation'])->name('build.generate_quotation');
+    Route::get('/build/quotation/{buildId}', [BuildController::class, 'showQuotation'])->name('build.quotation');
+    Route::get('/build/purchase/{build}', [BuildController::class, 'purchase'])->name('build.purchase');
+
+    // Customer Dashboard Routes
+    Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
+    Route::get('/customer/build/{buildId}', [CustomerDashboardController::class, 'viewBuild'])->name('customer.build.view');
+
+    // PC Building Compatibility Check
+    Route::post('/build/check', [CompatibilityController::class, 'check'])->name('build.check');
 });
 
 // Second-Hand Marketplace Routes
@@ -75,6 +91,7 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::post('/admin/approve-part/{id}', [AdminController::class, 'approvePart'])->name('admin.approve_part');
     Route::post('/admin/decline-part/{id}', [AdminController::class, 'declinePart'])->name('admin.decline_part');
     Route::post('/admin/add-admin', [AdminController::class, 'addAdmin'])->name('admin.add_admin');
+    Route::get('/admin/export-quotation-actions', [AdminController::class, 'exportQuotationActions'])->name('admin.export_quotation_actions');
 });
 
 // Profile Route (Seller)
@@ -87,56 +104,10 @@ Route::get('/editprofile', function () {
     return view('customer.editprofile');
 })->name('editprofile')->middleware(['auth', 'role:customer']);
 
-// PC Building Routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/build', [BuildController::class, 'index'])->name('build.index');
-    Route::post('/build/check', [CompatibilityController::class, 'check'])->name('build.check');
-});
-
-// API Routes for Component Compatibility
-
-
-
-
-Route::get('/build', [BuildController::class, 'index'])->name('build.index');
-Route::get('/build/motherboards/{cpuId}', [BuildController::class, 'getCompatibleMotherboards']);
-Route::get('/build/gpus/{cpuId}/{motherboardId}', [BuildController::class, 'getCompatibleGpus']);
-Route::get('/build/rams/{motherboardId}', [BuildController::class, 'getCompatibleRams']);
-Route::get('/build/storages/{ramId}', [BuildController::class, 'getCompatibleStorages']);
-Route::get('/build/power-supplies/{storageId}', [BuildController::class, 'getCompatiblePowerSupplies']);
-Route::post('/build/save', [BuildController::class, 'saveBuild'])->name('build.save');
-
-// Customer Dashboard Routes
-Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])
-    ->name('customer.dashboard')
-    ->middleware('auth');
-
-Route::delete('/customer/build/{buildId}', [CustomerDashboardController::class, 'deleteBuild'])
-    ->name('customer.build.delete')
-    ->middleware('auth');
-
-Route::get('/customer/build/{buildId}', [CustomerDashboardController::class, 'viewBuild'])
-    ->name('customer.build.view')
-    ->middleware('auth');
-
-// Placeholder routes for profile editing and orders
-Route::get('/customer/edit-profile', function () {
-    return view('customer.edit_profile');
-})->name('customer.edit_profile')->middleware('auth');
-
-Route::get('/customer/orders', function () {
-    return view('customer.orders');
-})->name('customer.orders')->middleware('auth');
-
-// Route::post('/generate-quotation', [QuotationController::class, 'generate'])->name('generate.quotation');
-// Route::get('/quotation-form', function () {
-//     return view('quotation-form');
-// })->name('quotation.form');
-// routes/web.php
-
-
-
+// Quotation Routes
 Route::get('/quotation', [QuotationController::class, 'index'])->name('quotation.index');
 Route::post('/quotation/generate', [QuotationController::class, 'generate'])->name('generate.quotation');
 Route::get('/quotation/download/{spec}', [QuotationController::class, 'download'])->name('quotation.download');
 Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBuildEmail'])->name('quotation.send-email');
+
+

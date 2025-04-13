@@ -12,19 +12,41 @@ class CustomerController extends Controller
 {
     public function profile()
     {
-        $customer = auth()->user(); // Assuming the authenticated user is the customer
+        $customer = auth()->user();
         if (!$customer) {
+            \Log::error('No authenticated user found in CustomerController@profile');
             return redirect()->route('login')->with('error', 'You must be logged in to view your profile.');
         }
 
+        \Log::info('Fetching builds for user ID: ' . $customer->id);
+
         try {
             $builds = Build::where('user_id', $customer->id)
-                ->with(['cpu', 'motherboard', 'gpu', 'ram', 'storage', 'powerSupply'])
-                ->paginate(5); // Paginate with 5 builds per page
+                ->with([
+                    'cpu' => function ($query) {
+                        $query->select('id', 'name');
+                    },
+                    'motherboard' => function ($query) {
+                        $query->select('id', 'name');
+                    },
+                    'gpu' => function ($query) {
+                        $query->select('id', 'name');
+                    },
+                    'rams' => function ($query) {
+                        $query->select('rams.id', 'rams.name');
+                    },
+                    'storages' => function ($query) {
+                        $query->select('storages.id', 'storages.name');
+                    },
+                    'powerSupply' => function ($query) {
+                        $query->select('id', 'name');
+                    },
+                ])
+                ->paginate(5);
+
+            \Log::info('Builds retrieved: ' . $builds->count());
         } catch (\Exception $e) {
-            // Log the error for debugging
             \Log::error('Error fetching builds in CustomerController@profile: ' . $e->getMessage());
-            // Set $builds to an empty paginated collection to avoid undefined variable error
             $builds = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 5);
         }
 

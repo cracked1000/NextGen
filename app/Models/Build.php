@@ -15,13 +15,10 @@ class Build extends Model
         'cpu_id',
         'motherboard_id',
         'gpu_id',
-        'ram_id',
-        'storage_id',
         'power_supply_id',
         'total_price',
     ];
 
-    // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -42,14 +39,14 @@ class Build extends Model
         return $this->belongsTo(Gpu::class);
     }
 
-    public function ram()
+    public function rams()
     {
-        return $this->belongsTo(Ram::class);
+        return $this->belongsToMany(Ram::class, 'build_ram');
     }
 
-    public function storage()
+    public function storages()
     {
-        return $this->belongsTo(Storage::class);
+        return $this->belongsToMany(Storage::class, 'build_storage');
     }
 
     public function powerSupply()

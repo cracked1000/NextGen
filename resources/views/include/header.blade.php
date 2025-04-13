@@ -1,4 +1,9 @@
+<head>
+<link rel="icon" href="{{ asset('images/Logo.png') }}?v=2" type="image/png">
+
+</head>
 <nav class="shadow-md text-white bg-gray-900">
+<link rel="icon" href="{{ asset('Logo.png') }}" type="image/png">
     <div class="max-w-screen-xl mx-auto px-4 py-2.5">
         <div class="flex items-center justify-between">
         <a href="{{ route('index') }}">

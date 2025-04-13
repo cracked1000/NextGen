@@ -121,6 +121,18 @@
             <div class="lg:w-3/4">
                 <h2 class="text-4xl font-bold mb-8 main-heading">My Dashboard</h2>
 
+                <!-- Flash Messages -->
+                @if (session('success'))
+                    <div class="mb-6 p-4 bg-green-500 text-white rounded-lg">
+                        {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="mb-6 p-4 bg-red-500 text-white rounded-lg">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
                 <div class="card p-6 mb-8">
                     <h3 class="text-lg font-semibold mb-4">Profile Picture</h3>
                     <div class="flex items-center">
@@ -152,7 +164,6 @@
                         <p class="text-gray-500">You have not set a default shipping address.</p>
                     @endif
                 </div>
-
                 <!-- Builds Section -->
                 <div class="card p-6">
                     <h3 class="text-lg font-semibold mb-4">My Builds</h3>
@@ -162,16 +173,35 @@
                     @else
                         @foreach ($builds as $build)
                             <div class="mb-6 p-4 bg-gray-700 rounded-lg">
-                                <h4 class="text-md font-semibold text-gray-200 mb-2">
+                                <!-- Build Name (Clickable to Expand) -->
+                                <h4 class="text-md font-semibold text-gray-200 mb-2 cursor-pointer flex items-center" onclick="toggleBuildDetails('build-{{ $build->id }}')">
+                                    <span class="mr-2 transition-transform duration-200" id="arrow-{{ $build->id }}">▶</span>
                                     {{ $build->name ?? 'Build #' . $build->id }} - <span class="text-gray-400">Total Price:</span> {{ number_format($build->total_price, 2) }} LKR
                                 </h4>
-                                <div class="text-gray-300 space-y-1">
-                                    <p><span class="font-medium text-gray-400">CPU:</span> {{ $build->cpu->name }}</p>
-                                    <p><span class="font-medium text-gray-400">Motherboard:</span> {{ $build->motherboard->name }}</p>
-                                    <p><span class="font-medium text-gray-400">GPU:</span> {{ $build->gpu->name }}</p>
-                                    <p><span class="font-medium text-gray-400">RAM:</span> {{ $build->ram->name }}</p>
-                                    <p><span class="font-medium text-gray-400">Storage:</span> {{ $build->storage->name }}</p>
-                                    <p><span class="font-medium text-gray-400">Power Supply:</span> {{ $build->powerSupply->name }}</p>
+                                <!-- Build Details (Initially Hidden) -->
+                                <div id="build-{{ $build->id }}" class="hidden text-gray-300 space-y-1">
+                                    <p><span class="font-medium text-gray-400">CPU:</span> {{ $build->cpu ? $build->cpu->name : 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">Motherboard:</span> {{ $build->motherboard ? $build->motherboard->name : 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">GPU:</span> {{ $build->gpu ? $build->gpu->name : 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">RAM:</span>
+                                        @if ($build->rams->isEmpty())
+                                            None selected
+                                        @else
+                                            @foreach ($build->rams as $ram)
+                                                {{ $ram->name ?? 'Not found' }}@if (!$loop->last), @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    <p><span class="font-medium text-gray-400">Storage:</span>
+                                        @if ($build->storages->isEmpty())
+                                            None selected
+                                        @else
+                                            @foreach ($build->storages as $storage)
+                                                {{ $storage->name ?? 'Not found' }}@if (!$loop->last), @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    <p><span class="font-medium text-gray-400">Power Supply:</span> {{ $build->powerSupply ? $build->powerSupply->name : 'Not found' }}</p>
                                 </div>
                                 <div class="mt-4 flex space-x-3">
                                     <a href="{{ route('build.purchase', $build->id) }}" class="btn btn-primary btn-sm">Purchase Build</a>
@@ -195,5 +225,19 @@
     @include('include.footer')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleBuildDetails(buildId) {
+            const details = document.getElementById(buildId);
+            const arrow = document.getElementById(`arrow-${buildId.split('-')[1]}`);
+            
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                details.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    </script>
 </body>
 </html>
