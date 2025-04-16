@@ -92,6 +92,14 @@
             border-color: #e53e3e;
             box-shadow: 0 0 10px rgba(229, 62, 62, 0.3);
         }
+        .avatar {
+            background: #2d3748;
+            color: #a0aec0;
+            font-weight: 500;
+            border: 2px solid #e53e3e;
+            box-shadow: 0 0 10px rgba(229, 62, 62, 0.3);
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -104,7 +112,7 @@
                     <h3 class="text-lg font-semibold mb-6">Account Hub</h3>
                     <ul class="space-y-3">
                         <li>
-                            <a href="{{ route('customer.profile') }}" class="flex items-center text-gray-300 hover:text-white py-3 px-4 rounded-lg">
+                            <a href="{{ route('customer.edit_profile') }}" class="flex items-center text-gray-300 hover:text-white py-3 px-4 rounded-lg">
                                 <i class="fas fa-user mr-3 text-primary"></i> Edit Profile
                             </a>
                         </li>
@@ -137,9 +145,27 @@
                 @endif
 
                 <div class="card p-8 text-gray-300">
-                    <form action="{{ route('customer.update_profile') }}" method="POST">
+                    <form action="{{ route('customer.update_profile') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
+
+                        <!-- Profile Photo Upload -->
+                        <div class="mb-6">
+                            <label for="profile_photo" class="block text-gray-300 font-medium mb-2">Profile Photo</label>
+                            <div class="flex items-center mb-4">
+                                @if ($customer->profile_photo)
+                                    <img src="{{ asset('storage/' . $customer->profile_photo) }}" alt="Profile Picture" class="w-16 h-16 rounded-full mr-4 avatar">
+                                @else
+                                    <div class="w-16 h-16 rounded-full flex items-center justify-center mr-4 avatar">
+                                        <span class="text-sm text-center">{{ strtoupper(substr($customer->first_name, 0, 1)) . strtoupper(substr($customer->last_name, 0, 1)) }}</span>
+                                    </div>
+                                @endif
+                                <input type="file" name="profile_photo" id="profile_photo" class="w-full p-3 rounded-lg @error('profile_photo') border-red-500 @enderror">
+                            </div>
+                            @error('profile_photo')
+                                <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="mb-6">
@@ -169,9 +195,9 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="mb-6">
-                                <label for="Zipcode" class="block text-gray-300 font-medium mb-2">Zipcode</label>
-                                <input type="text" name="Zipcode" id="Zipcode" value="{{ old('Zipcode', $customer->Zipcode) }}" class="w-full p-3 rounded-lg @error('Zipcode') border-red-500 @enderror">
-                                @error('Zipcode')
+                                <label for="zipcode" class="block text-gray-300 font-medium mb-2">Zipcode</label>
+                                <input type="text" name="zipcode" id="zipcode" value="{{ old('zipcode', $customer->zipcode) }}" class="w-full p-3 rounded-lg @error('zipcode') border-red-500 @enderror">
+                                @error('zipcode')
                                     <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -204,7 +230,7 @@
                         </div>
 
                         <div class="mb-6">
-                            <label for="status" class="block text-gray-300   font-medium mb-2">Status</label>
+                            <label for="status" class="block text-gray-300 font-medium mb-2">Status</label>
                             <select name="status" id="status" class="w-full p-3 rounded-lg @error('status') border-red-500 @enderror" required>
                                 <option value="active" {{ old('status', $customer->status) == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ old('status', $customer->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>

@@ -150,7 +150,7 @@
                     </div>
                 @endif
 
-                <form id="quotationForm" action="{{ route('generate.quotation') }}" method="POST">
+                <form id="quotationForm" action="{{ route('quotation.generate') }}" method="POST">
                     @csrf
 
                     <div class="mb-6">

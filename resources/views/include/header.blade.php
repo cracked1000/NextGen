@@ -1,16 +1,37 @@
 <head>
-<link rel="icon" href="{{ asset('images/Logo.png') }}?v=2" type="image/png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ config('app.name', 'NextGen Computing') }}</title>
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ asset('images/Logo.png') }}?v=2" type="image/png">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Import Jersey 10 from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS to override Tailwind's font -->
+    <style>
+        html, body {
+            font-family: 'Jersey 10', sans-serif !important;
+            font-size: large;
+        }
+
+        /* Override Tailwind's font-sans utility */
+        .font-sans {
+            font-family: 'Jersey 10', sans-serif !important;
+        }
+    </style>
 </head>
+
 <nav class="shadow-md text-white bg-gray-900">
-<link rel="icon" href="{{ asset('Logo.png') }}" type="image/png">
     <div class="max-w-screen-xl mx-auto px-4 py-2.5">
         <div class="flex items-center justify-between">
-        <a href="{{ route('index') }}">
-          <img src="{{ asset('images/Logo.png') }}" alt="NextGen Computing Logo" class="h-12">
-        </a>
-
-
+            <a href="{{ route('index') }}">
+                <img src="{{ asset('images/Logo.png') }}" alt="NextGen Computing Logo" class="h-12">
+            </a>
 
             <button class="lg:hidden p-2 hover:bg-gray-950 rounded-md focus:outline-none" aria-controls="navbarNav" aria-expanded="false" id="navbar-toggle">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -20,9 +41,9 @@
 
             <div class="hidden lg:flex space-x-8">
                 <a class="hover:text-blue-500" href="{{ route('index') }}">Home</a>
-                <a class="hover:text-blue-500" href="{{ route('build.index') }}">Build PC</a> <!-- Updated link to PC building page -->
+                <a class="hover:text-blue-500" href="{{ route('build.index') }}">Build PC</a>
                 <a class="hover:text-blue-500" href="{{ route('secondhand.index') }}">Market</a>
-                <a class="hover:text-blue-500" href="{{ route('quotation.index') }}">Quotation Genarator</a>
+                <a class="hover:text-blue-500" href="{{ route('quotation.index') }}">Quotation Generator</a>
 
                 @if (Auth::check())
                     @if (Auth::user()->role === 'seller')
@@ -71,7 +92,7 @@
         <div class="lg:hidden collapse" id="navbarNav">
             <ul class="space-y-4">
                 <li><a class="block py-2 px-4 hover:bg-gray-950" href="{{ route('index') }}">Home</a></li>
-                <li><a class="block py-2 px-4 hover:bg-gray-950" href="{{ route('build.index') }}">Build PC</a></li> <!-- Updated link to PC building page -->
+                <li><a class="block py-2 px-4 hover:bg-gray-950" href="{{ route('build.index') }}">Build PC</a></li>
                 <li><a class="block py-2 px-4 hover:bg-gray-950" href="{{ route('secondhand.index') }}">Market</a></li>
                 @if (Auth::check())
                     @if (Auth::user()->role === 'seller')

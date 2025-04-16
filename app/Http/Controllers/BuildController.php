@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BuildPurchased;
+use App\Models\QuotationAction;
 
 class BuildController extends Controller
 {
@@ -268,35 +269,71 @@ class BuildController extends Controller
     }
 }
     public function purchase($buildId, Build $build = null)
-    {
-        \Log::info('Purchase route accessed - Build ID Parameter: ' . $buildId . ', Auth ID: ' . (auth()->id() ?? 'null'));
+        {
+            \Log::info('Purchase route accessed - Build ID Parameter: ' . $buildId . ', Auth ID: ' . (auth()->id() ?? 'null'));
 
-        if (!auth()->check()) {
-            \Log::warning('Purchase attempt failed - No authenticated user');
-            return redirect()->route('login')->with('error', 'Please log in to purchase a build.');
+            if (!auth()->check()) {
+                \Log::warning('Purchase attempt failed - No authenticated user');
+                return redirect()->route('login')->with('error', 'Please log in to purchase a build.');
+            }
+
+            \Log::info('Attempting to find build with ID: ' . $buildId);
+            $build = Build::with([
+                'user',
+                'cpu',
+                'motherboard',
+                'gpu',
+                'rams',
+                'storages',
+                'powerSupply'
+            ])->find($buildId);
+            if (!$build) {
+                \Log::error('Build not found for ID: ' . $buildId);
+                return redirect()->route('customer.profile')->with('error', 'Build not found.');
+            }
+
+            \Log::info('Purchase attempt - Auth ID: ' . auth()->id() . ', Build ID: ' . $build->id . ', Build User ID: ' . $build->user_id . ', Build Name: ' . ($build->name ?? 'Build #' . $build->id));
+
+            if ($build->user_id !== auth()->id()) {
+                \Log::warning('Authorization failed - Auth ID: ' . auth()->id() . ', Build User ID: ' . $build->user_id);
+                return redirect()->route('customer.profile')->with('error', 'You are not authorized to purchase this build.');
+            }
+
+            try {
+                // Generate a unique quotation number
+                $quotationNumber = QuotationAction::generateQuotationNumber();
+
+                // Store the quotation in QuotationAction
+                $quotationAction = QuotationAction::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'created',
+                    'build_details' => [
+                        'build_id' => $build->id,
+                        'name' => $build->name ?? 'Build #' . $build->id,
+                        'total_price' => $build->total_price,
+                        'components' => [
+                            'cpu' => $build->cpu ? $build->cpu->name : 'Not selected',
+                            'motherboard' => $build->motherboard ? $build->motherboard->name : 'Not selected',
+                            'gpu' => $build->gpu ? $build->gpu->name : 'Not selected',
+                            'ram' => $build->rams->isEmpty() ? 'Not selected' : $build->rams->pluck('name')->toArray(),
+                            'storage' => $build->storages->isEmpty() ? 'Not selected' : $build->storages->pluck('name')->toArray(),
+                            'power_supply' => $build->powerSupply ? $build->powerSupply->name : 'Not selected',
+                        ],
+                    ],
+                    'quotation_number' => $quotationNumber,
+                    'source' => 'Build PC',
+                    'build_id' => $build->id,
+                    'quotation_request_id' => null,
+                ]);
+
+                // Send the email with the quotation number and source
+                Mail::to($build->user->email)->send(new BuildPurchased($build, $quotationNumber, $quotationAction->source));
+                return redirect()->route('customer.profile')->with('success', 'Build purchased successfully! A confirmation email has been sent to your email address.');
+            } catch (\Exception $e) {
+                \Log::error('Error sending build purchase email: ' . $e->getMessage());
+                return redirect()->route('customer.profile')->with('error', 'There was an error processing your purchase. Please try again later.');
+            }
         }
-
-        \Log::info('Attempting to find build with ID: ' . $buildId);
-        $build = Build::find($buildId); // Fallback to manual resolution
-        if (!$build) {
-            \Log::error('Build not found for ID: ' . $buildId);
-            return redirect()->route('customer.profile')->with('error', 'Build not found.');
-        }
-
-        \Log::info('Purchase attempt - Auth ID: ' . auth()->id() . ', Build ID: ' . $build->id . ', Build User ID: ' . $build->user_id . ', Build Name: ' . ($build->name ?? 'Build #' . $build->id));
-
-        if ($build->user_id !== auth()->id()) {
-            \Log::warning('Authorization failed - Auth ID: ' . auth()->id() . ', Build User ID: ' . $build->user_id);
-            return redirect()->route('customer.profile')->with('error', 'You are not authorized to purchase this build.');
-        }
-
-        try {
-            Mail::to($build->user->email)->send(new BuildPurchased($build));
-            return redirect()->route('customer.profile')->with('success', 'Build purchased successfully! A confirmation email has been sent to your email address.');
-        } catch (\Exception $e) {
-            \Log::error('Error sending build purchase email: ' . $e->getMessage());
-            return redirect()->route('customer.profile')->with('error', 'There was an error processing your purchase. Please try again later.');
-        }
-    }
+   
 
 }

@@ -60,6 +60,7 @@
             font-weight: 500;
             border: 2px solid #e53e3e;
             box-shadow: 0 0 10px rgba(229, 62, 62, 0.3);
+            object-fit: cover;
         }
         .main-heading {
             font-family: 'Orbitron', sans-serif;
@@ -136,10 +137,14 @@
                 <div class="card p-6 mb-8">
                     <h3 class="text-lg font-semibold mb-4">Profile Picture</h3>
                     <div class="flex items-center">
-                        <div class="w-16 h-16 rounded-full flex items-center justify-center mr-4 avatar">
-                            <span class="text-sm text-center">No profile picture set</span>
-                        </div>
-                        <a href="#" class="text-primary hover:underline font-medium">Upload Picture</a>
+                        @if ($customer->profile_photo)
+                            <img src="{{ asset('storage/' . $customer->profile_photo) }}" alt="Profile Picture" class="w-16 h-16 rounded-full mr-4 avatar">
+                        @else
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mr-4 avatar">
+                                <span class="text-sm text-center">{{ strtoupper(substr($customer->first_name, 0, 1)) . strtoupper(substr($customer->last_name, 0, 1)) }}</span>
+                            </div>
+                        @endif
+                        <a href="{{ route('customer.edit_profile') }}" class="text-primary hover:underline font-medium">Upload Picture</a>
                     </div>
                 </div>
 
@@ -164,8 +169,9 @@
                         <p class="text-gray-500">You have not set a default shipping address.</p>
                     @endif
                 </div>
+
                 <!-- Builds Section -->
-                <div class="card p-6">
+                <div class="card p-6 mb-8">
                     <h3 class="text-lg font-semibold mb-4">My Builds</h3>
                     @if ($builds->isEmpty())
                         <p class="text-gray-500 mb-2">You have not saved any builds yet.</p>
@@ -218,6 +224,38 @@
                         </div>
                     @endif
                 </div>
+
+                <!-- Quotations Section -->
+                <!-- <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">My Quotations</h3>
+                    @if ($quotations->isEmpty())
+                        <p class="text-gray-500 mb-2">You have not generated any quotations yet.</p>
+                        <a href="{{ route('quotation.index') }}" class="text-primary hover:underline font-medium">Generate a quotation now!</a>
+                    @else
+                        @foreach ($quotations as $quotation)
+                            <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                                <!-- Quotation Name (Clickable to Expand) -->
+                                <h4 class="text-md font-semibold text-gray-200 mb-2 cursor-pointer flex items-center" onclick="toggleQuotationDetails('quotation-{{ $quotation->id }}')">
+                                    <span class="mr-2 transition-transform duration-200" id="arrow-quotation-{{ $quotation->id }}">▶</span>
+                                    Quotation #{{ $quotation->quotation_number }} - <span class="text-gray-400">Source:</span> {{ $quotation->source }}
+                                </h4>
+                                <!-- Quotation Details (Initially Hidden) -->
+                                <div id="quotation-{{ $quotation->id }}" class="hidden text-gray-300 space-y-1">
+                                    <p><span class="font-medium text-gray-400">Total Price:</span> {{ number_format($quotation->build_details['total_price'] ?? 0, 2) }} LKR</p>
+                                    <p><span class="font-medium text-gray-400">Status:</span> {{ $quotation->status }}</p>
+                                    <p><span class="font-medium text-gray-400">Special Notes:</span> {{ $quotation->special_notes ?? 'No notes provided' }}</p>
+                                    <p><span class="font-medium text-gray-400">Created At:</span> {{ $quotation->created_at->format('Y-m-d H:i:s') }}</p>
+                                    <p><span class="font-medium text-gray-400">CPU:</span> {{ $quotation->build_details['components']['cpu']['name'] ?? 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">Motherboard:</span> {{ $quotation->build_details['components']['motherboard']['name'] ?? 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">GPU:</span> {{ $quotation->build_details['components']['gpu']['name'] ?? 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">RAM:</span> {{ $quotation->build_details['components']['ram']['name'] ?? 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">Storage:</span> {{ $quotation->build_details['components']['storage']['name'] ?? 'Not found' }}</p>
+                                    <p><span class="font-medium text-gray-400">Power Supply:</span> {{ $quotation->build_details['components']['power_supply']['name'] ?? 'Not found' }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+                </div> -->
             </div>
         </div>
     </div>
@@ -229,6 +267,19 @@
         function toggleBuildDetails(buildId) {
             const details = document.getElementById(buildId);
             const arrow = document.getElementById(`arrow-${buildId.split('-')[1]}`);
+            
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                details.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleQuotationDetails(quotationId) {
+            const details = document.getElementById(quotationId);
+            const arrow = document.getElementById(`arrow-${quotationId}`);
             
             if (details.classList.contains('hidden')) {
                 details.classList.remove('hidden');

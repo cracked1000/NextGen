@@ -9,6 +9,8 @@ use App\Models\Gpu;
 use App\Models\Ram;
 use App\Models\Storage;
 use App\Models\PowerSupply;
+use App\Models\QuotationRequest;
+use App\Models\QuotationAction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -125,6 +127,7 @@ class QuotationController extends Controller
         $builds = [];
         $build_errors = [];
         $budget_message = null;
+        $quotations = []; // Store quotation details for each build
 
         $specs_to_generate = $this->getSpecLevelsForBudget($budget);
 
@@ -134,6 +137,11 @@ class QuotationController extends Controller
             if ($budget <= $this->budget_thresholds['very_low']) {
                 try {
                     $builds['basic'] = $this->generateBuild($budget, $allocation, 0.5, $use_case);
+
+                    // Create QuotationRequest and QuotationAction for the basic build
+                    $quotationDetails = $this->storeQuotation($request, $builds['basic'], $use_case);
+                    $quotations['basic'] = $quotationDetails;
+
                     $budget_message = "Based on your limited budget of LKR " . number_format($budget, 2) .
                                      ", we've generated a basic build that meets minimum requirements for {$use_case}.";
                 } catch (\Exception $e) {
@@ -144,6 +152,10 @@ class QuotationController extends Controller
                 foreach ($specs_to_generate as $spec => $factor) {
                     try {
                         $builds[$spec] = $this->generateBuild($budget, $allocation, $factor, $use_case);
+
+                        // Create QuotationRequest and QuotationAction for each spec
+                        $quotationDetails = $this->storeQuotation($request, $builds[$spec], $use_case);
+                        $quotations[$spec] = $quotationDetails;
                     } catch (\Exception $e) {
                         $build_errors[$spec] = $e->getMessage();
                         Log::error("Error generating {$spec} build: " . $e->getMessage());
@@ -177,9 +189,10 @@ class QuotationController extends Controller
                 }
             }
 
-            session()->put('quotation_data', compact('builds', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message'));
+            // Store builds, quotations, and other data in the session
+            session()->put('quotation_data', compact('builds', 'quotations', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message'));
 
-            return view('quotation.index', compact('builds', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message'));
+            return view('quotation.index', compact('builds', 'quotations', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message'));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -198,6 +211,7 @@ class QuotationController extends Controller
         }
 
         $builds = $data['builds'];
+        $quotations = $data['quotations'];
         $build_errors = $data['build_errors'];
         $budget = $data['budget'];
         $use_case = $data['use_case'];
@@ -210,7 +224,7 @@ class QuotationController extends Controller
 
         $is_pdf = true;
 
-        $pdf = PDF::loadView('quotation.index', compact('builds', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message', 'is_pdf'));
+        $pdf = PDF::loadView('quotation.index', compact('builds', 'quotations', 'build_errors', 'budget', 'use_case', 'allocation', 'budget_message', 'is_pdf'));
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->download("pc_build_quotation_{$spec}.pdf");
@@ -225,6 +239,7 @@ class QuotationController extends Controller
         }
 
         $builds = $data['builds'];
+        $quotations = $data['quotations'];
         $use_case = $data['use_case'];
 
         if (!isset($builds[$spec])) {
@@ -232,14 +247,19 @@ class QuotationController extends Controller
         }
 
         $build = $builds[$spec];
+        $quotation = $quotations[$spec] ?? null;
 
         $user = $request->user();
         if (!$user || !$user->email) {
             return redirect()->route('quotation.index')->withErrors(['error' => 'User email not found. Please ensure you are logged in.']);
         }
 
+        if (!$quotation) {
+            return redirect()->route('quotation.index')->withErrors(['error' => 'Quotation details not found for this build.']);
+        }
+
         try {
-            Mail::to($user->email)->send(new BuildDetailsEmail($build, $spec, $use_case));
+            Mail::to($user->email)->send(new BuildDetailsEmail($build, $spec, $use_case, $quotation['quotation_number'], $quotation['source']));
             return redirect()->route('quotation.index')->with('success', 'Build details have been sent to your email!');
         } catch (\Exception $e) {
             Log::error('Error sending build email: ' . $e->getMessage());
@@ -330,6 +350,61 @@ class QuotationController extends Controller
         $build['compatibility'] = $this->checkBuildCompatibility($build, $use_case);
 
         return $build;
+    }
+
+    /**
+     * Store the quotation details in QuotationRequest and QuotationAction.
+     *
+     * @param Request $request
+     * @param array $build
+     * @param string $use_case
+     * @return array
+     */
+    private function storeQuotation(Request $request, array $build, string $use_case)
+    {
+        $userId = auth()->check() ? auth()->id() : null;
+
+        // Create a QuotationRequest
+        $quotationRequest = QuotationRequest::create([
+            'user_id' => $userId,
+            'components' => json_encode($build),
+            'total_price' => $build['total_price'],
+        ]);
+
+        // Generate a unique quotation number
+        $quotationNumber = QuotationAction::generateQuotationNumber();
+
+        // Create a QuotationAction
+        $quotationAction = QuotationAction::create([
+            'user_id' => $userId,
+            'action' => 'generated',
+            'build_details' => [
+                'use_case' => $use_case,
+                'components' => [
+                    'cpu' => $build['cpu'] ? $build['cpu']->toArray() : null,
+                    'motherboard' => $build['motherboard'] ? $build['motherboard']->toArray() : null,
+                    'gpu' => $build['gpu'] ? $build['gpu']->toArray() : null,
+                    'ram' => $build['ram'] ? $build['ram']->toArray() : null,
+                    'storage' => $build['storage'] ? $build['storage']->toArray() : null,
+                    'power_supply' => $build['power_supply'] ? $build['power_supply']->toArray() : null,
+                ],
+                'total_price' => $build['total_price'],
+                'remaining_budget' => $build['remaining_budget'],
+                'budget_used_percentage' => $build['budget_used_percentage'],
+                'price_breakdown' => $build['price_breakdown'],
+                'compatibility' => $build['compatibility'],
+            ],
+            'quotation_number' => $quotationNumber,
+            'source' => 'Quotation Generator',
+            'build_id' => null,
+            'quotation_request_id' => $quotationRequest->id,
+        ]);
+
+        return [
+            'quotation_number' => $quotationNumber,
+            'source' => $quotationAction->source,
+            'quotation_action_id' => $quotationAction->id,
+        ];
     }
 
     private function selectComponent($model_class, $max_budget, $filters = [], $component_name = 'component', $use_case = 'general_use')

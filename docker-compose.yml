@@ -1,0 +1,51 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nextgen_app
+    volumes:
+      - .:/var/www
+    depends_on:
+      - mysql
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+    networks:
+      - nextgen_network
+
+  web:
+    image: nginx:alpine
+    container_name: nextgen_web
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - nextgen_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: nextgen_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: NEXTGEN
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - nextgen_network
+
+volumes:
+  mysql_data:
+
+networks:
+  nextgen_network:
+    driver: bridge

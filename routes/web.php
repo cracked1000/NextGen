@@ -55,13 +55,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/build/check', [CompatibilityController::class, 'check'])->name('build.check');
 });
 
-// Second-Hand Marketplace Routes
-Route::get('/secondhand', [SecondHandPartController::class, 'index'])->name('secondhand.index');
-Route::post('/secondhand', [SecondHandPartController::class, 'store'])->name('secondhand.store')->middleware(['auth', 'role:seller']);
-Route::get('/secondhand/{id}', [SecondHandPartController::class, 'show'])->name('secondhand.show');
-Route::post('/secondhand/{id}/buy', [SecondHandPartController::class, 'buy'])->name('secondhand.buy')->middleware(['auth', 'role:customer']);
-Route::get('/secondhand/{id}/buy', [SecondHandPartController::class, 'showBuyForm'])->name('secondhand.buy_form')->middleware(['auth', 'role:customer']);
-Route::get('/secondhand/confirmation/{payment_id}', [SecondHandPartController::class, 'confirmation'])->name('secondhand.confirmation')->middleware(['auth', 'role:customer']);
+    // Second-Hand Marketplace Routes
+    Route::get('/secondhand', [SecondHandPartController::class, 'index'])->name('secondhand.index');
+    Route::post('/secondhand', [SecondHandPartController::class, 'store'])->name('secondhand.store')->middleware(['auth', 'role:seller']);
+    Route::get('/secondhand/{id}', [SecondHandPartController::class, 'show'])->name('secondhand.show');
+    Route::post('/secondhand/{id}/buy', [SecondHandPartController::class, 'buy'])->name('secondhand.buy')->middleware(['auth', 'role:customer']);
+    Route::get('/secondhand/{id}/buy', [SecondHandPartController::class, 'showBuyForm'])->name('secondhand.buy_form')->middleware(['auth', 'role:customer']);
+    Route::get('/secondhand/confirmation/{payment_id}', [SecondHandPartController::class, 'confirmation'])->name('secondhand.confirmation')->middleware(['auth', 'role:customer']);
 
 // Seller Routes
 Route::middleware([\App\Http\Middleware\SellerAuth::class])->group(function () {
@@ -92,6 +92,14 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::post('/admin/decline-part/{id}', [AdminController::class, 'declinePart'])->name('admin.decline_part');
     Route::post('/admin/add-admin', [AdminController::class, 'addAdmin'])->name('admin.add_admin');
     Route::get('/admin/export-quotation-actions', [AdminController::class, 'exportQuotationActions'])->name('admin.export_quotation_actions');
+    
+        Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/admin/export-quotation-actions', [AdminController::class, 'exportQuotationActions'])->name('admin.exportQuotationActions');
+        Route::patch('/admin/quotation/{id}/status', [AdminController::class, 'updateQuotationStatus'])->name('admin.updateQuotationStatus');
+        Route::delete('/admin/quotations/{id}', [AdminController::class, 'deleteQuotation'])->name('admin.deleteQuotation');
+        Route::get('/admin/quotations/{id}', [AdminController::class, 'getQuotationDetails'])->name('admin.getQuotationDetails');
+    
+    
 });
 
 // Profile Route (Seller)
@@ -101,13 +109,21 @@ Route::get('/profile', function () {
 
 // Edit Profile Route (Customer)
 Route::get('/editprofile', function () {
-    return view('customer.editprofile');
-})->name('editprofile')->middleware(['auth', 'role:customer']);
+    return view('customer.edit-profile');
+})->name('edit-profile')->middleware(['auth', 'role:customer']);
 
 // Quotation Routes
 Route::get('/quotation', [QuotationController::class, 'index'])->name('quotation.index');
-Route::post('/quotation/generate', [QuotationController::class, 'generate'])->name('generate.quotation');
+Route::post('/quotation/generate', [QuotationController::class, 'generate'])->name('quotation.generate');
 Route::get('/quotation/download/{spec}', [QuotationController::class, 'download'])->name('quotation.download');
 Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBuildEmail'])->name('quotation.send-email');
 
+
+Route::middleware('auth')->group(function () {
+    Route::get('/customer/dashboard', [CustomerController::class, 'profile'])->name('customer.profile');
+    Route::get('/customer/edit-profile', [CustomerController::class, 'editProfile'])->name('customer.edit_profile'); // Fixed route name
+    Route::put('/customer/update-profile', [CustomerController::class, 'updateProfile'])->name('customer.update_profile');
+    Route::get('/customer/orders', [CustomerController::class, 'orders'])->name('customer.orders');
+    Route::delete('/customer/builds/{id}', [CustomerController::class, 'deleteBuild'])->name('customer.build.delete');
+});
 

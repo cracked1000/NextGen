@@ -13,22 +13,21 @@ class BuildDetailsEmail extends Mailable
     public $build;
     public $spec;
     public $use_case;
+    public $quotationNumber;
+    public $source;
 
-    public function __construct($build, $spec, $use_case)
+    public function __construct($build, $spec, $use_case, $quotationNumber, $source)
     {
         $this->build = $build;
         $this->spec = $spec;
         $this->use_case = $use_case;
+        $this->quotationNumber = $quotationNumber;
+        $this->source = $source;
     }
 
     public function build()
     {
-        return $this->subject('Your PC Build Quotation from NextGen Computing')
-                    ->view('emails.build_details')
-                    ->with([
-                        'build' => $this->build,
-                        'spec' => $this->spec,
-                        'use_case' => $this->use_case,
-                    ]);
+        return $this->view('emails.build_details')
+                    ->subject("Your {$this->spec} PC Build Quotation for {$this->use_case} - NextGen Computing");
     }
 }
