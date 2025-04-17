@@ -201,7 +201,7 @@ class BuildController extends Controller
     }
 
     public function saveBuild(Request $request)
-{
+    {
     \Log::info('saveBuild method called with data:', $request->all());
 
     try {
@@ -266,8 +266,8 @@ class BuildController extends Controller
     } catch (\Exception $e) {
         \Log::error('Error saving build: ' . $e->getMessage());
         return redirect()->back()->with('error', 'Failed to save build: ' . $e->getMessage());
-    }
-}
+    }}
+  
     public function purchase($buildId, Build $build = null)
         {
             \Log::info('Purchase route accessed - Build ID Parameter: ' . $buildId . ', Auth ID: ' . (auth()->id() ?? 'null'));
@@ -334,6 +334,5 @@ class BuildController extends Controller
                 return redirect()->route('customer.profile')->with('error', 'There was an error processing your purchase. Please try again later.');
             }
         }
-   
-
+    
 }

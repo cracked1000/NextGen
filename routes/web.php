@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/customer/builds/{id}', [CustomerController::class, 'deleteBuild'])->name('customer.build.delete');
 
     // Build Routes
-    Route::get('/build', [BuildController::class, 'index'])->name('build.index');
+    Route::get('/build1', [BuildController::class, 'index'])->name('build.index');
     Route::get('/build/purchase/{id}', [BuildController::class, 'purchase'])->name('build.purchase');
     Route::post('/build/save', [BuildController::class, 'saveBuild'])->name('build.save');
     Route::post('/build/update-progress', [BuildController::class, 'updateBuildProgress'])->name('build.update_progress');
@@ -126,4 +126,3 @@ Route::middleware('auth')->group(function () {
     Route::get('/customer/orders', [CustomerController::class, 'orders'])->name('customer.orders');
     Route::delete('/customer/builds/{id}', [CustomerController::class, 'deleteBuild'])->name('customer.build.delete');
 });
-

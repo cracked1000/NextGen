@@ -24,6 +24,7 @@
             font-family: 'Jersey 10', sans-serif !important;
         }
     </style>
+    
 </head>
 
 <nav class="shadow-md text-white bg-gray-900">
