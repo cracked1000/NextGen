@@ -4,47 +4,63 @@ namespace App\Http\Controllers;
 
 use App\Models\SecondHandPart;
 use App\Models\User;
+use App\Models\Order;
 use App\Models\QuotationAction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
     public function dashboard(Request $request)
     {
+        // Statistics
         $totalParts = SecondHandPart::count();
         $totalSellers = User::where('role', 'seller')->count();
         $totalCustomers = User::where('role', 'customer')->count();
-        $totalSales = SecondHandPart::where('status', 'Available')->sum('price');
+        $totalSales = Order::where('status', 'Completed')->sum('total');
 
+        // Queries
         $allUsersQuery = User::select('id', 'first_name', 'last_name', 'email', 'role', 'created_at')
             ->orderBy('created_at', 'desc');
+        $partsQuery = SecondHandPart::with('seller')->orderBy('listing_date', 'desc');
+        $ordersQuery = Order::with(['part.seller', 'customer'])->orderBy('order_date', 'desc');
+        $quotationActionsQuery = QuotationAction::with('user')->orderBy('created_at', 'desc');
 
-        $quotationActionsQuery = QuotationAction::with('user')
-            ->orderBy('created_at', 'desc');
-
+        // Date filtering
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-
         if ($startDate && $endDate) {
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
-            $quotationActionsQuery->whereBetween('created_at', [$startDate, $endDate]);
             $allUsersQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $parts = SecondHandPart::whereBetween('created_at', [$startDate, $endDate])
-                ->with('seller')
-                ->get();
-            $totalSales = SecondHandPart::where('status', 'Available')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->sum('price');
-        } else {
-            $parts = SecondHandPart::with('seller')->where('status', 'Available')->get();
+            $partsQuery->whereBetween('listing_date', [$startDate, $endDate]);
+            $ordersQuery->whereBetween('order_date', [$startDate, $endDate]);
+            $quotationActionsQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $totalSales = Order::where('status', 'Completed')
+                ->whereBetween('order_date', [$startDate, $endDate])
+                ->sum('total');
         }
 
-        // Apply search filter for quotations if present
-        $search = $request->input('search');
+        // Search functionality
+        $search = $request->input('search', '');
         if ($search) {
+            $allUsersQuery->where(function ($query) use ($search) {
+                $query->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            });
+            $partsQuery->where('part_name', 'like', "%{$search}%");
+            $ordersQuery->where(function ($query) use ($search) {
+                $query->where('id', 'like', "%{$search}%")
+                      ->orWhereHas('part', function ($q) use ($search) {
+                          $q->where('part_name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('customer', function ($q) use ($search) {
+                          $q->where('email', 'like', "%{$search}%");
+                      });
+            });
             $quotationActionsQuery->where(function ($query) use ($search) {
                 $query->where('quotation_number', 'like', "%{$search}%")
                       ->orWhere('source', 'like', "%{$search}%")
@@ -56,13 +72,20 @@ class AdminController extends Controller
             });
         }
 
-        // Paginate the results
-        $quotationActions = $quotationActionsQuery->paginate(5); // 5 quotations per page
-        $allUsers = $allUsersQuery->paginate(5); // 5 users per page
+        // Paginate results
+        $allUsers = $allUsersQuery->paginate(5, ['*'], 'users_page');
+        $parts = $partsQuery->paginate(5, ['*'], 'parts_page');
+        $orders = $ordersQuery->paginate(5, ['*'], 'orders_page');
+        $quotationActions = $quotationActionsQuery->paginate(5, ['*'], 'quotations_page');
 
-        $sellers = User::where('role', 'seller')->get();
-        $customers = User::where('role', 'customer')->get();
-        $pendingParts = SecondHandPart::with('seller')->where('status', 'pending')->get();
+        // Additional data
+        $sellers = User::where('role', 'seller')->get(['id', 'first_name', 'last_name']);
+        $customers = User::where('role', 'customer')->get(['id', 'first_name', 'last_name']);
+        $pendingParts = SecondHandPart::where('status', 'pending')->with('seller')->get();
+        $verificationRequests = Order::where('verify_product', true)
+            ->where('is_verified', false)
+            ->with(['part.seller', 'customer'])
+            ->get();
 
         return view('admin.dashboard', compact(
             'totalParts',
@@ -72,12 +95,189 @@ class AdminController extends Controller
             'sellers',
             'customers',
             'parts',
+            'orders',
             'pendingParts',
+            'verificationRequests',
+            'allUsers',
+            'quotationActions',
             'startDate',
             'endDate',
-            'allUsers',
-            'quotationActions'
+            'search'
         ));
+    }
+
+    public function addSeller(Request $request)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+        ]);
+
+        User::create([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'seller',
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Seller added successfully.');
+    }
+
+    public function editSeller(Request $request, $id)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+        ]);
+
+        $seller = User::findOrFail($id);
+        $seller->update([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Seller updated successfully.');
+    }
+
+    public function deleteSeller($id)
+    {
+        $seller = User::findOrFail($id);
+        $seller->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Seller deleted successfully.');
+    }
+
+    public function addCustomer(Request $request)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+        ]);
+
+        User::create([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'customer',
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Customer added successfully.');
+    }
+
+    public function editCustomer(Request $request, $id)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+        ]);
+
+        $customer = User::findOrFail($id);
+        $customer->update([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Customer updated successfully.');
+    }
+
+    public function deleteCustomer($id)
+    {
+        $customer = User::findOrFail($id);
+        $customer->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Customer deleted successfully.');
+    }
+
+    public function addPart(Request $request)
+    {
+        $request->validate([
+            'part_name' => 'required|string|max:255',
+            'seller_id' => 'required|exists:users,id',
+            'price' => 'required|numeric|min:0',
+            'condition' => 'required|in:New,Used',
+            'category' => 'nullable|string|max:255',
+            'image1' => 'nullable|image|max:2048',
+        ]);
+
+        $data = $request->only(['part_name', 'seller_id', 'price', 'condition', 'category']);
+        $data['status'] = 'pending';
+        $data['listing_date'] = now();
+
+        if ($request->hasFile('image1')) {
+            $data['image1'] = $request->file('image1')->store('parts', 'public');
+        }
+
+        SecondHandPart::create($data);
+        return redirect()->route('admin.dashboard')->with('success', 'Part added successfully.');
+    }
+
+    public function editPart(Request $request, $id)
+    {
+        $request->validate([
+            'part_name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'condition' => 'required|in:New,Used',
+            'image1' => 'nullable|image|max:2048',
+        ]);
+
+        $part = SecondHandPart::findOrFail($id);
+        $data = $request->only(['part_name', 'price', 'condition']);
+
+        if ($request->hasFile('image1')) {
+            if ($part->image1) {
+                Storage::disk('public')->delete($part->image1);
+            }
+            $data['image1'] = $request->file('image1')->store('parts', 'public');
+        }
+
+        $part->update($data);
+        return redirect()->route('admin.dashboard')->with('success', 'Part updated successfully.');
+    }
+
+    public function deletePart($id)
+    {
+        $part = SecondHandPart::findOrFail($id);
+        if ($part->image1) {
+            Storage::disk('public')->delete($part->image1);
+        }
+        $part->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Part deleted successfully.');
+    }
+
+    public function approvePart($id)
+    {
+        $part = SecondHandPart::findOrFail($id);
+        $part->update(['status' => 'Available']);
+        return redirect()->route('admin.dashboard')->with('success', 'Part approved successfully.');
+    }
+
+    public function declinePart($id)
+    {
+        $part = SecondHandPart::findOrFail($id);
+        $part->update(['status' => 'Declined']);
+        return redirect()->route('admin.dashboard')->with('success', 'Part declined successfully.');
+    }
+
+    public function updateVerificationStatus(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+        $request->validate([
+            'is_verified' => 'required|boolean',
+        ]);
+
+        $order->update([
+            'is_verified' => $request->is_verified,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Order verification status updated successfully.');
     }
 
     public function updateQuotationStatus(Request $request, $id)

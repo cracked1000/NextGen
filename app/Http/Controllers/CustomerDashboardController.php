@@ -4,25 +4,32 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Build;
 use App\Models\User;
+use App\Models\Order;
 
 class CustomerDashboardController extends Controller
 {
     public function index()
     {
         // Ensure only customers can access this dashboard
-        if (auth()->user()->role !== 'customer') {
-            abort(403, 'Unauthorized access. This dashboard is for customers only.');
+        $customer = Auth::user();
+        if (!$customer || $customer->role !== 'customer') {
+            return redirect()->route('login')->with('error', 'You must be logged in as a customer to access the dashboard.');
         }
 
-        // Fetch the logged-in customer
-        $customer = auth()->user();
-
         // Fetch the customer's builds with related components, paginated
-        $builds = $customer->builds()
-            ->with(['cpu', 'motherboard', 'gpu', 'ram', 'storage', 'powerSupply'])
-            ->paginate(5); // Paginate with 5 builds per page
+        $builds = Build::where('user_id', $customer->id)
+            ->with(['cpu', 'motherboard', 'gpu', 'rams', 'storages', 'powerSupply'])
+            ->paginate(5);
 
-        return view('customer.profile', compact('customer', 'builds'));
+        // Fetch the customer's quotations
+        $quotations = Quotation::where('user_id', $customer->id)->get();
+
+        // Fetch the customer's orders
+        $orders = Order::where('customer_id', $customer->id)
+            ->with('part')
+            ->get();
+
+        return view('customer.dashboard', compact('customer', 'builds', 'quotations', 'orders'));
     }
 
     

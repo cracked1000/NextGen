@@ -19,6 +19,7 @@
                     @endif
                     <form action="{{ route('signup.store') }}" method="POST">
                         @csrf
+                        <!-- Role -->
                         <label for="role" class="block text-sm font-bold">Sign Up As *</label>
                         <select id="role" name="role" class="w-full p-3 mb-4 bg-white rounded-md" required>
                             <option value="">Select your role</option>
@@ -26,18 +27,39 @@
                             <option value="seller" {{ old('role') == 'seller' ? 'selected' : '' }}>Seller</option>
                         </select>
 
+                        <!-- First Name -->
                         <label for="first_name" class="block text-sm font-bold">First Name *</label>
                         <input type="text" id="first_name" name="first_name" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your First Name" value="{{ old('first_name') }}" required>
-                        
+
+                        <!-- Last Name -->
                         <label for="last_name" class="block text-sm font-bold">Last Name *</label>
                         <input type="text" id="last_name" name="last_name" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Last Name" value="{{ old('last_name') }}" required>
-                        
+
+                        <!-- Email -->
                         <label for="email" class="block text-sm font-bold">Email *</label>
                         <input type="email" id="email" name="email" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Email" value="{{ old('email') }}" required>
-                        
+
+                        <!-- Address -->
+                        <label for="address" class="block text-sm font-bold">Address *</label>
+                        <textarea id="address" name="address" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Address" required>{{ old('address') }}</textarea>
+
+                        <!-- Zipcode -->
+                        <label for="zipcode" class="block text-sm font-bold">Zipcode *</label>
+                        <input type="text" id="zipcode" name="zipcode" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Zipcode" value="{{ old('zipcode') }}" required>
+
+                        <!-- Phone Number -->
+                        <label for="phone_number" class="block text-sm font-bold">Phone Number *</label>
+                        <input type="text" id="phone_number" name="phone_number" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Phone Number" value="{{ old('phone_number') }}" required>
+
+                        <!-- Optional Phone Number -->
+                        <label for="optional_phone_number" class="block text-sm font-bold">Optional Phone Number</label>
+                        <input type="text" id="optional_phone_number" name="optional_phone_number" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Optional Phone Number" value="{{ old('optional_phone_number') }}">
+
+                        <!-- Password -->
                         <label for="password" class="block text-sm font-bold">Password *</label>
                         <input type="password" id="password" name="password" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Your Password" required>
-                        
+
+                        <!-- Password Confirmation -->
                         <label for="password_confirmation" class="block text-sm font-bold">Confirm Password *</label>
                         <input type="password" id="password_confirmation" name="password_confirmation" class="w-full p-3 mb-4 bg-white rounded-md" placeholder="Confirm Your Password" required>
 

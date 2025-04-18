@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SecondHandPart extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'part_name',
         'description',
@@ -17,10 +14,15 @@ class SecondHandPart extends Model
         'condition',
         'category',
         'seller_id',
+        'listing_date',
         'image1',
         'image2',
         'image3',
-        'listing_date',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'listing_date' => 'datetime',
     ];
 
     public function seller()

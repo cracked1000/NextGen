@@ -21,6 +21,10 @@ class SignupController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
+            'address' => 'required|string|max:500',
+            'zipcode' => 'required|string|max:20',
+            'phone_number' => 'required|string|max:20',
+            'optional_phone_number' => 'nullable|string|max:20',
         ]);
 
         $userData = [
@@ -29,6 +33,10 @@ class SignupController extends Controller
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
             'role' => $validatedData['role'],
+            'address' => $validatedData['address'],
+            'zipcode' => $validatedData['zipcode'],
+            'phone_number' => $validatedData['phone_number'],
+            'optional_phone_number' => $validatedData['optional_phone_number'],
             'status' => 'active',
         ];
 

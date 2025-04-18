@@ -440,6 +440,7 @@
                         @endforeach
                     @endif
                 </div>
+                
             </div>
         </div>
     </div>
@@ -473,6 +474,44 @@
                 arrow.style.transform = 'rotate(0deg)';
             }
         }
+        function toggleBuildDetails(buildId) {
+        const details = document.getElementById(buildId);
+        const arrow = document.getElementById(`arrow-${buildId.split('-')[1]}`);
+        
+        if (details.classList.contains('hidden')) {
+            details.classList.remove('hidden');
+            arrow.style.transform = 'rotate(90deg)';
+        } else {
+            details.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleQuotationDetails(quotationId) {
+        const details = document.getElementById(quotationId);
+        const arrow = document.getElementById(`arrow-${quotationId.replace('quotation-', '')}`);
+        
+        if (details.classList.contains('hidden')) {
+            details.classList.remove('hidden');
+            arrow.style.transform = 'rotate(90deg)';
+        } else {
+            details.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleOrderDetails(orderId) {
+        const details = document.getElementById(orderId);
+        const arrow = document.getElementById(`arrow-${orderId.replace('order-', '')}`);
+        
+        if (details.classList.contains('hidden')) {
+            details.classList.remove('hidden');
+            arrow.style.transform = 'rotate(90deg)';
+        } else {
+            details.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    }
     </script>
 </body>
 </html>

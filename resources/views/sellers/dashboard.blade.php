@@ -44,6 +44,100 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-8" role="alert">
+                <p>{{ session('error') }}</p>
+            </div>
+        @endif
+
+        <!-- Orders Section -->
+        <div class="mb-8">
+            <h3 class="text-2xl font-bold text-white mb-6">Your Orders</h3>
+            @if ($orders->isEmpty())
+                <div class="bg-white shadow rounded-lg p-6 text-center">
+                    <p class="text-gray-600">No orders for your parts yet.</p>
+                </div>
+            @else
+                <div class="bg-white shadow rounded-lg p-6">
+                    <!-- Display Errors -->
+                    @if ($errors->any())
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4">
+                            @foreach ($errors->all() as $error)
+                                <p>{{ $error }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="py-3 px-4 border text-left">Order ID</th>
+                                    <th class="py-3 px-4 border text-left">Customer</th>
+                                    <th class="py-3 px-4 border text-left">Part</th>
+                                    <th class="py-3 px-4 border text-left">Total</th>
+                                    <th class="py-3 px-4 border text-left">Accepted</th>
+                                    <th class="py-3 px-4 border text-left">Shipped</th>
+                                    <th class="py-3 px-4 border text-left">Received</th>
+                                    <th class="py-3 px-4 border text-left">Verified</th>
+                                    <th class="py-3 px-4 border text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($orders as $order)
+                                    <tr>
+                                        <td class="py-3 px-4 border">#{{ $order->id }}</td>
+                                        <td class="py-3 px-4 border">{{ $order->customer ? $order->customer->first_name . ' ' . $order->customer->last_name : 'N/A' }}</td>
+                                        <td class="py-3 px-4 border">{{ $order->part ? $order->part->part_name : 'N/A' }}</td>
+                                        <td class="py-3 px-4 border">{{ number_format($order->total, 2) }} LKR</td>
+                                        <td class="py-3 px-4 border">
+                                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-full {{ $order->is_accepted ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                                                {{ $order->is_accepted ? 'Yes' : 'No' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 border">
+                                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-full {{ $order->is_shipped ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                                                {{ $order->is_shipped ? 'Yes' : 'No' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 border">
+                                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-full {{ $order->is_received ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                                                {{ $order->is_received ? 'Yes' : 'No' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 border">
+                                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-full {{ $order->verify_product ? ($order->is_verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700') : 'bg-gray-100 text-gray-700' }}">
+                                                {{ $order->verify_product ? ($order->is_verified ? 'Yes' : 'Pending') : 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 border">
+                                            <form action="{{ route('seller.orders.update-status', $order->id) }}" method="POST">
+                                                @csrf
+                                                @method('PATCH')
+                                                <div class="flex items-center space-x-2">
+                                                    <label class="flex items-center">
+                                                        <input type="checkbox" name="is_accepted" value="1" {{ $order->is_accepted ? 'checked' : '' }} class="mr-1">
+                                                        Accept
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="checkbox" name="is_shipped" value="1" {{ $order->is_shipped ? 'checked' : '' }} {{ $order->is_accepted ? '' : 'disabled' }} class="mr-1">
+                                                        Shipped
+                                                    </label>
+                                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200">
+                                                        Update
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+        </div>
+
         <!-- Parts Section -->
         <div>
             <h3 class="text-2xl font-bold text-white mb-6">Your Parts</h3>
@@ -55,19 +149,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach ($parts as $part)
                         <div class="bg-white shadow rounded-lg p-6 hover:shadow-lg transition duration-200">
-                            <!-- Part Name -->
                             <h4 class="text-lg font-bold text-gray-800 mb-2">{{ $part->part_name }}</h4>
-
-                            <!-- Part Details -->
                             <div class="space-y-1 text-gray-600">
                                 <p><span class="font-medium">Price:</span> LKR {{ number_format($part->price, 2) }}</p>
                                 <p><span class="font-medium">Status:</span> {{ $part->status }}</p>
                                 <p><span class="font-medium">Condition:</span> {{ $part->condition ?? 'N/A' }}</p>
                                 <p><span class="font-medium">Category:</span> {{ $part->category ?? 'N/A' }}</p>
-                                <!-- <p><span class="font-medium">Description:</span> {{ $part->description ?? 'N/A' }}</p> -->
                             </div>
-
-                            <!-- Images -->
                             @if ($part->image1 || $part->image2 || $part->image3)
                                 <div class="mt-4">
                                     <p class="text-gray-600 font-medium mb-2">Images:</p>
@@ -84,8 +172,6 @@
                                     </div>
                                 </div>
                             @endif
-
-                            <!-- Action Buttons -->
                             <div class="mt-6 flex space-x-3">
                                 <a href="{{ route('seller.edit_part', $part->id) }}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
                                     Edit

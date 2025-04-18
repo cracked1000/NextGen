@@ -194,7 +194,7 @@
                                 Download Quotation
                             </a>
                             @if (auth()->check())
-                                <form action="{{ route('quotation.send-email', ['spec' => $spec]) }}" method="POST" style="display: inline;">
+                                <form action="{{ route('quotation.send_email', ['spec' => $spec]) }}" method="POST" style="display: inline;">
                                     @csrf
                                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full">
                                         Continue with the Build

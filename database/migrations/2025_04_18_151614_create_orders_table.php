@@ -10,9 +10,8 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('orderable_id'); // Polymorphic: can be a second_hand_part or a new component
-            $table->string('orderable_type'); // Polymorphic: e.g., 'App\Models\SecondHandPart', 'App\Models\Cpu'
+            $table->unsignedBigInteger('customer_id');
+            $table->unsignedBigInteger('part_id');
             $table->string('first_name');
             $table->string('last_name');
             $table->string('email');
@@ -28,23 +27,38 @@ return new class extends Migration
             $table->decimal('verify_cost', 10, 2);
             $table->decimal('shipping_charges', 10, 2);
             $table->decimal('total', 10, 2);
-            $table->enum('status', ['Pending', 'Completed', 'Cancelled']);
+            $table->enum('status', ['Pending', 'Completed', 'Cancelled'])->default('Pending');
             $table->string('shipping_address')->nullable();
             $table->enum('payment_status', ['Pending', 'Paid', 'Failed'])->default('Pending');
             $table->timestamp('order_date')->nullable();
             $table->timestamps();
         });
 
-        // Add the foreign key constraint in a separate step, only if the users table exists
+        // Add foreign key constraints in a separate step for safety
         if (Schema::hasTable('users')) {
             Schema::table('orders', function (Blueprint $table) {
-                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+                $table->foreign('customer_id')->references('id')->on('users')->onDelete('cascade');
+            });
+        }
+
+        if (Schema::hasTable('second_hand_parts')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->foreign('part_id')->references('id')->on('second_hand_parts')->onDelete('cascade');
             });
         }
     }
 
     public function down(): void
     {
+        Schema::table('orders', function (Blueprint $table) {
+            if (Schema::hasTable('users')) {
+                $table->dropForeign(['customer_id']);
+            }
+            if (Schema::hasTable('second_hand_parts')) {
+                $table->dropForeign(['part_id']);
+            }
+        });
+
         Schema::dropIfExists('orders');
     }
 };
