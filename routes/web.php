@@ -90,7 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/sellers/parts/{id}', [SellerController::class, 'updatePart'])->name('seller.update_part');
     Route::delete('/sellers/parts/{id}', [SellerController::class, 'deletePart'])->name('seller.delete_part');
     Route::post('/sellers/orders/{id}/update-status', [SellerController::class, 'updateOrderStatus'])->name('seller.orders.update-status');
-
+ 
 });
 
 // Admin Routes
