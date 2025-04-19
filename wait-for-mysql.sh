@@ -18,7 +18,7 @@ check_dns() {
 }
 
 # Wait for DNS resolution of the MySQL service
-MAX_DNS_RETRIES=60  # Increased from 30
+MAX_DNS_RETRIES=60
 DNS_RETRY_INTERVAL=2
 DNS_RETRIES=0
 
@@ -35,7 +35,7 @@ done
 echo "DNS resolution for mysql succeeded!"
 
 # Wait for MySQL to be ready
-MAX_MYSQL_RETRIES=60  # Increased from 30
+MAX_MYSQL_RETRIES=60
 MYSQL_RETRY_INTERVAL=2
 MYSQL_RETRIES=0
 
@@ -51,5 +51,42 @@ done
 
 echo "MySQL is ready!"
 
+# Reset the database to avoid migration conflicts
+echo "Resetting database to ensure a fresh state..."
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "DROP DATABASE IF EXISTS $DB_DATABASE; CREATE DATABASE $DB_DATABASE;"
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to reset the database."
+  exit 1
+fi
+
+# Ensure Composer dependencies are installed
+echo "Installing Composer dependencies (if not already installed)..."
+composer install --optimize-autoloader --no-dev || true
+
+# Generate application key
+echo "Generating application key..."
+php artisan key:generate
+
+# Clear config cache
+echo "Clearing config cache..."
+php artisan config:clear
+
+# Run migrations
+echo "Running migrations..."
+php artisan migrate --force
+if [ $? -ne 0 ]; then
+  echo "Error: Migrations failed."
+  exit 1
+fi
+
+# Set up storage for file uploads
+echo "Creating storage link for file uploads..."
+php artisan storage:link
+
+echo "Setting storage permissions..."
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+
 # Start PHP-FPM
+echo "Starting PHP-FPM..."
 exec php-fpm

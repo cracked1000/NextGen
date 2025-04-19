@@ -125,4 +125,4 @@ Route::get('/quotation/download/{spec}', [QuotationController::class, 'download'
 Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBuildEmail'])->name('quotation.send_email');
 
 
-Route::patch('/customer/orders/{id}/mark-received', [CustomerController::class, 'orders'])->name('customer.orders');
+//Route::patch('/customer/orders/{id}/mark-received', [CustomerController::class, 'orders'])->name('customer.orders');
