@@ -6,9 +6,15 @@ use App\Models\SecondHandPart;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\QuotationAction;
+use App\Models\Cpu;
+use App\Models\Motherboard;
+use App\Models\Gpu;
+use App\Models\Ram;
+use App\Models\Storage;
+use App\Models\PowerSupply;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
+
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
@@ -21,12 +27,26 @@ class AdminController extends Controller
         $totalCustomers = User::where('role', 'customer')->count();
         $totalSales = Order::where('status', 'Completed')->sum('total');
 
+        $totalCpus = Cpu::count();
+        $totalMotherboards = Motherboard::count();
+        $totalGpus = Gpu::count();
+        $totalRams = Ram::count();
+        $totalStorages = Storage::count();
+        $totalPowerSupplies = PowerSupply::count();
+
         // Queries
         $allUsersQuery = User::select('id', 'first_name', 'last_name', 'email', 'role', 'created_at')
             ->orderBy('created_at', 'desc');
         $partsQuery = SecondHandPart::with('seller')->orderBy('listing_date', 'desc');
         $ordersQuery = Order::with(['part.seller', 'customer'])->orderBy('order_date', 'desc');
         $quotationActionsQuery = QuotationAction::with('user')->orderBy('created_at', 'desc');
+
+        $cpusQuery = Cpu::query()->orderBy('id', 'desc');
+        $motherboardsQuery = Motherboard::query()->orderBy('id', 'desc');
+        $gpusQuery = Gpu::query()->orderBy('id', 'desc');
+        $ramsQuery = Ram::query()->orderBy('id', 'desc');
+        $storagesQuery = Storage::query()->orderBy('id', 'desc');
+        $powerSuppliesQuery = PowerSupply::query()->orderBy('id', 'desc');
 
         // Date filtering
         $startDate = $request->input('start_date');
@@ -64,12 +84,19 @@ class AdminController extends Controller
             $quotationActionsQuery->where(function ($query) use ($search) {
                 $query->where('quotation_number', 'like', "%{$search}%")
                       ->orWhere('source', 'like', "%{$search}%")
-                      ->orWhere('status', 'like', "%{$search}%")
                       ->orWhere('special_notes', 'like', "%{$search}%")
                       ->orWhereHas('user', function ($q) use ($search) {
                           $q->where('email', 'like', "%{$search}%");
                       });
             });
+
+            // Search for components
+            $cpusQuery->where('name', 'like', "%{$search}%");
+            $motherboardsQuery->where('name', 'like', "%{$search}%");
+            $gpusQuery->where('name', 'like', "%{$search}%");
+            $ramsQuery->where('name', 'like', "%{$search}%");
+            $storagesQuery->where('name', 'like', "%{$search}%");
+            $powerSuppliesQuery->where('name', 'like', "%{$search}%");
         }
 
         // Paginate results
@@ -77,6 +104,13 @@ class AdminController extends Controller
         $parts = $partsQuery->paginate(5, ['*'], 'parts_page');
         $orders = $ordersQuery->paginate(5, ['*'], 'orders_page');
         $quotationActions = $quotationActionsQuery->paginate(5, ['*'], 'quotations_page');
+
+        $cpus = $cpusQuery->paginate(5, ['*'], 'cpus_page');
+        $motherboards = $motherboardsQuery->paginate(5, ['*'], 'motherboards_page');
+        $gpus = $gpusQuery->paginate(5, ['*'], 'gpus_page');
+        $rams = $ramsQuery->paginate(5, ['*'], 'rams_page');
+        $storages = $storagesQuery->paginate(5, ['*'], 'storages_page');
+        $powerSupplies = $powerSuppliesQuery->paginate(5, ['*'], 'power_supplies_page');
 
         // Additional data
         $sellers = User::where('role', 'seller')->get(['id', 'first_name', 'last_name']);
@@ -92,6 +126,12 @@ class AdminController extends Controller
             'totalSellers',
             'totalCustomers',
             'totalSales',
+            'totalCpus',
+            'totalMotherboards',
+            'totalGpus',
+            'totalRams',
+            'totalStorages',
+            'totalPowerSupplies',
             'sellers',
             'customers',
             'parts',
@@ -100,6 +140,12 @@ class AdminController extends Controller
             'verificationRequests',
             'allUsers',
             'quotationActions',
+            'cpus',
+            'motherboards',
+            'gpus',
+            'rams',
+            'storages',
+            'powerSupplies',
             'startDate',
             'endDate',
             'search'
@@ -385,5 +431,239 @@ class AdminController extends Controller
             'special_notes' => $quotation->special_notes ?? 'No notes',
             'created_at' => $quotation->created_at->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    // CPU Management
+    public function addCpu(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'socket_type' => 'required|string|max:50',
+            'power_requirement' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        Cpu::create($request->only(['name', 'socket_type', 'power_requirement', 'price']));
+        return redirect()->route('admin.dashboard')->with('success', 'CPU added successfully.');
+    }
+
+    public function editCpu(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'socket_type' => 'required|string|max:50',
+            'power_requirement' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $cpu = Cpu::findOrFail($id);
+        $cpu->update($request->only(['name', 'socket_type', 'power_requirement', 'price']));
+        return redirect()->route('admin.dashboard')->with('success', 'CPU updated successfully.');
+    }
+
+    public function deleteCpu($id)
+    {
+        $cpu = Cpu::findOrFail($id);
+        $cpu->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'CPU deleted successfully.');
+    }
+
+    // Motherboard Management
+    public function addMotherboard(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'socket_type' => 'required|string|max:50',
+            'ram_type' => 'required|string|in:DDR4,DDR5',
+            'ram_speed' => 'required|numeric|min:0',
+            'form_factor' => 'required|string|in:ATX,Micro ATX,Mini ITX',
+            'ram_slots' => 'required|integer|min:1',
+            'sata_slots' => 'required|integer|min:0',
+            'm2_slots' => 'required|integer|min:0',
+            'm2_nvme_support' => 'required|boolean',
+            'pcie_version' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        Motherboard::create($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Motherboard added successfully.');
+    }
+
+    public function editMotherboard(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'socket_type' => 'required|string|max:50',
+            'ram_type' => 'required|string|in:DDR4,DDR5',
+            'ram_speed' => 'required|numeric|min:0',
+            'form_factor' => 'required|string|in:ATX,Micro ATX,Mini ITX',
+            'ram_slots' => 'required|integer|min:1',
+            'sata_slots' => 'required|integer|min:0',
+            'm2_slots' => 'required|integer|min:0',
+            'm2_nvme_support' => 'required|boolean',
+            'pcie_version' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $motherboard = Motherboard::findOrFail($id);
+        $motherboard->update($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Motherboard updated successfully.');
+    }
+
+    public function deleteMotherboard($id)
+    {
+        $motherboard = Motherboard::findOrFail($id);
+        $motherboard->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Motherboard deleted successfully.');
+    }
+
+    // GPU Management
+    public function addGpu(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'pcie_version' => 'required|numeric|min:0',
+            'power_requirement' => 'required|numeric|min:0',
+            'length' => 'required|numeric|min:0',
+            'height' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        Gpu::create($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'GPU added successfully.');
+    }
+
+    public function editGpu(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'pcie_version' => 'required|numeric|min:0',
+            'power_requirement' => 'required|numeric|min:0',
+            'length' => 'required|numeric|min:0',
+            'height' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $gpu = Gpu::findOrFail($id);
+        $gpu->update($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'GPU updated successfully.');
+    }
+
+    public function deleteGpu($id)
+    {
+        $gpu = Gpu::findOrFail($id);
+        $gpu->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'GPU deleted successfully.');
+    }
+
+    // RAM Management
+    public function addRam(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'ram_type' => 'required|string|in:DDR4,DDR5',
+            'ram_speed' => 'required|numeric|min:0',
+            'capacity' => 'required|numeric|min:0',
+            'stick_count' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        Ram::create($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'RAM added successfully.');
+    }
+
+    public function editRam(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'ram_type' => 'required|string|in:DDR4,DDR5',
+            'ram_speed' => 'required|numeric|min:0',
+            'capacity' => 'required|numeric|min:0',
+            'stick_count' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $ram = Ram::findOrFail($id);
+        $ram->update($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'RAM updated successfully.');
+    }
+
+    public function deleteRam($id)
+    {
+        $ram = Ram::findOrFail($id);
+        $ram->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'RAM deleted successfully.');
+    }
+
+    // Storage Management
+    public function addStorage(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|in:M.2,SATA',
+            'is_nvme' => 'required|boolean',
+            'capacity' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        Storage::create($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Storage added successfully.');
+    }
+
+    public function editStorage(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|in:M.2,SATA',
+            'is_nvme' => 'required|boolean',
+            'capacity' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $storage = Storage::findOrFail($id);
+        $storage->update($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Storage updated successfully.');
+    }
+
+    public function deleteStorage($id)
+    {
+        $storage = Storage::findOrFail($id);
+        $storage->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Storage deleted successfully.');
+    }
+
+    // Power Supply Management
+    public function addPowerSupply(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'wattage' => 'required|numeric|min:0',
+            'form_factor' => 'required|string|in:ATX,SFX',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        PowerSupply::create($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Power Supply added successfully.');
+    }
+
+    public function editPowerSupply(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'wattage' => 'required|numeric|min:0',
+            'form_factor' => 'required|string|in:ATX,SFX',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $powerSupply = PowerSupply::findOrFail($id);
+        $powerSupply->update($request->all());
+        return redirect()->route('admin.dashboard')->with('success', 'Power Supply updated successfully.');
+    }
+
+    public function deletePowerSupply($id)
+    {
+        $powerSupply = PowerSupply::findOrFail($id);
+        $powerSupply->delete();
+        return redirect()->route('admin.dashboard')->with('success', 'Power Supply deleted successfully.');
     }
 }

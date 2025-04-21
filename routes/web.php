@@ -116,6 +116,32 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::delete('/admin/quotations/{id}', [AdminController::class, 'deleteQuotation'])->name('admin.delete_quotation');
     Route::get('/admin/quotations/{id}', [AdminController::class, 'getQuotationDetails'])->name('admin.get_quotation_details');
     Route::patch('/admin/orders/{id}/verify', [AdminController::class, 'updateVerificationStatus'])->name('admin.orders.verify');
+    
+
+    Route::post('/admin/cpus', [AdminController::class, 'addCpu'])->name('cpus.store');
+    Route::patch('/admin/cpus/{id}', [AdminController::class, 'editCpu'])->name('cpus.update');
+    Route::delete('/admin/cpus/{id}', [AdminController::class, 'deleteCpu'])->name('cpus.destroy');
+
+    Route::post('/admin/motherboards', [AdminController::class, 'addMotherboard'])->name('motherboards.store');
+    Route::patch('/admin/motherboards/{id}', [AdminController::class, 'editMotherboard'])->name('motherboards.update');
+    Route::delete('/admin/motherboards/{id}', [AdminController::class, 'deleteMotherboard'])->name('motherboards.destroy');
+
+    Route::post('/admin/gpus', [AdminController::class, 'addGpu'])->name('gpus.store');
+    Route::patch('/admin/gpus/{id}', [AdminController::class, 'editGpu'])->name('gpus.update');
+    Route::delete('/admin/gpus/{id}', [AdminController::class, 'deleteGpu'])->name('gpus.destroy');
+
+    Route::post('/admin/rams', [AdminController::class, 'addRam'])->name('rams.store');
+    Route::patch('/admin/rams/{id}', [AdminController::class, 'editRam'])->name('rams.update');
+    Route::delete('/admin/rams/{id}', [AdminController::class, 'deleteRam'])->name('rams.destroy');
+
+    Route::post('/admin/storages', [AdminController::class, 'addStorage'])->name('storages.store');
+    Route::patch('/admin/storages/{id}', [AdminController::class, 'editStorage'])->name('storages.update');
+    Route::delete('/admin/storages/{id}', [AdminController::class, 'deleteStorage'])->name('storages.destroy');
+
+    Route::post('/admin/power-supplies', [AdminController::class, 'addPowerSupply'])->name('power_supplies.store');
+    Route::patch('/admin/power-supplies/{id}', [AdminController::class, 'editPowerSupply'])->name('power_supplies.update');
+    Route::delete('/admin/power-supplies/{id}', [AdminController::class, 'deletePowerSupply'])->name('power_supplies.destroy');
+
 });
 
 // Quotation Routes

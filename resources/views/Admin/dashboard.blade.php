@@ -111,8 +111,6 @@
     </header>
 
     <div class="flex">
-    
-
         <!-- Main Content -->
         <main class="flex-1 p-6">
             <!-- Messages -->
@@ -128,7 +126,7 @@
                 <h2 class="text-xl font-semibold mb-4">Overview</h2>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="card p-4">
-                        <h3 class="text-lg font-medium">Total Parts</h3>
+                        <h3 class="text-lg font-medium">Total Second-Hand Parts</h3>
                         <p class="text-2xl">{{ $totalParts }}</p>
                     </div>
                     <div class="card p-4">
@@ -142,6 +140,30 @@
                     <div class="card p-4">
                         <h3 class="text-lg font-medium">Total Sales (LKR)</h3>
                         <p class="text-2xl">{{ number_format($totalSales, 2) }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total CPUs</h3>
+                        <p class="text-2xl">{{ $totalCpus }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total Motherboards</h3>
+                        <p class="text-2xl">{{ $totalMotherboards }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total GPUs</h3>
+                        <p class="text-2xl">{{ $totalGpus }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total RAMs</h3>
+                        <p class="text-2xl">{{ $totalRams }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total Storages</h3>
+                        <p class="text-2xl">{{ $totalStorages }}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-medium">Total Power Supplies</h3>
+                        <p class="text-2xl">{{ $totalPowerSupplies }}</p>
                     </div>
                 </div>
             </section>
@@ -161,7 +183,6 @@
                 <h2 class="text-xl font-semibold mb-4">Users</h2>
                 <div class="card">
                     <div class="p-4">
-                        
                         <!-- Users Table -->
                         <table class="table w-full">
                             <thead>
@@ -218,12 +239,11 @@
                 </div>
             </section>
 
-            <!-- Parts -->
+            <!-- Second-Hand Parts -->
             <section id="parts" class="mb-8">
                 <h2 class="text-xl font-semibold mb-4">Second-Hand Parts</h2>
                 <div class="card">
                     <div class="p-4">
-                        
                         <!-- Parts Table -->
                         <table class="table w-full">
                             <thead>
@@ -381,6 +401,482 @@
                 </div>
             </section>
 
+            <!-- CPUs -->
+            <section id="cpus" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">CPUs</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add CPU Form -->
+                        <form action="{{ route('cpus.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <input type="text" name="socket_type" placeholder="Socket Type" class="border p-1 rounded" required>
+                                <input type="number" name="power_requirement" placeholder="Power Requirement (W)" class="border p-1 rounded" required>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add CPU</button>
+                            </div>
+                        </form>
+
+                        <!-- CPUs Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">Socket Type</th>
+                                    <th class="py-2 px-4">Power Requirement (W)</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($cpus as $cpu)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $cpu->name }}</td>
+                                        <td class="py-2 px-4">{{ $cpu->socket_type }}</td>
+                                        <td class="py-2 px-4">{{ $cpu->power_requirement }}</td>
+                                        <td class="py-2 px-4">{{ number_format($cpu->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('cpus.update', $cpu->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $cpu->name }}" class="border p-1 rounded" required>
+                                                <input type="text" name="socket_type" value="{{ $cpu->socket_type }}" class="border p-1 rounded" required>
+                                                <input type="number" name="power_requirement" value="{{ $cpu->power_requirement }}" class="border p-1 rounded" required>
+                                                <input type="number" name="price" value="{{ $cpu->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('cpus.destroy', $cpu->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-2 px-4 text-center text-gray-600">No CPUs found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $cpus->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Motherboards -->
+            <section id="motherboards" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Motherboards</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add Motherboard Form -->
+                        <form action="{{ route('motherboards.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2 flex-wrap">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <input type="text" name="socket_type" placeholder="Socket Type" class="border p-1 rounded" required>
+                                <select name="ram_type" class="border p-1 rounded" required>
+                                    <option value="DDR4">DDR4</option>
+                                    <option value="DDR5">DDR5</option>
+                                </select>
+                                <input type="number" name="ram_speed" placeholder="RAM Speed (MHz)" class="border p-1 rounded" required>
+                                <select name="form_factor" class="border p-1 rounded" required>
+                                    <option value="ATX">ATX</option>
+                                    <option value="Micro ATX">Micro ATX</option>
+                                    <option value="Mini ITX">Mini ITX</option>
+                                </select>
+                                <input type="number" name="ram_slots" placeholder="RAM Slots" class="border p-1 rounded" required>
+                                <input type="number" name="sata_slots" placeholder="SATA Slots" class="border p-1 rounded" required>
+                                <input type="number" name="m2_slots" placeholder="M.2 Slots" class="border p-1 rounded" required>
+                                <select name="m2_nvme_support" class="border p-1 rounded" required>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                                <input type="number" name="pcie_version" placeholder="PCIe Version" step="0.1" class="border p-1 rounded" required>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add Motherboard</button>
+                            </div>
+                        </form>
+
+                        <!-- Motherboards Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">Socket Type</th>
+                                    <th class="py-2 px-4">RAM Type</th>
+                                    <th class="py-2 px-4">RAM Speed (MHz)</th>
+                                    <th class="py-2 px-4">Form Factor</th>
+                                    <th class="py-2 px-4">RAM Slots</th>
+                                    <th class="py-2 px-4">SATA Slots</th>
+                                    <th class="py-2 px-4">M.2 Slots</th>
+                                    <th class="py-2 px-4">M.2 NVMe Support</th>
+                                    <th class="py-2 px-4">PCIe Version</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($motherboards as $motherboard)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $motherboard->name }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->socket_type }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->ram_type }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->ram_speed }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->form_factor }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->ram_slots }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->sata_slots }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->m2_slots }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->m2_nvme_support ? 'Yes' : 'No' }}</td>
+                                        <td class="py-2 px-4">{{ $motherboard->pcie_version }}</td>
+                                        <td class="py-2 px-4">{{ number_format($motherboard->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('motherboards.update', $motherboard->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $motherboard->name }}" class="border p-1 rounded" required>
+                                                <input type="text" name="socket_type" value="{{ $motherboard->socket_type }}" class="border p-1 rounded" required>
+                                                <select name="ram_type" class="border p-1 rounded" required>
+                                                    <option value="DDR4" {{ $motherboard->ram_type == 'DDR4' ? 'selected' : '' }}>DDR4</option>
+                                                    <option value="DDR5" {{ $motherboard->ram_type == 'DDR5' ? 'selected' : '' }}>DDR5</option>
+                                                </select>
+                                                <input type="number" name="ram_speed" value="{{ $motherboard->ram_speed }}" class="border p-1 rounded" required>
+                                                <select name="form_factor" class="border p-1 rounded" required>
+                                                    <option value="ATX" {{ $motherboard->form_factor == 'ATX' ? 'selected' : '' }}>ATX</option>
+                                                    <option value="Micro ATX" {{ $motherboard->form_factor == 'Micro ATX' ? 'selected' : '' }}>Micro ATX</option>
+                                                    <option value="Mini ITX" {{ $motherboard->form_factor == 'Mini ITX' ? 'selected' : '' }}>Mini ITX</option>
+                                                </select>
+                                                <input type="number" name="ram_slots" value="{{ $motherboard->ram_slots }}" class="border p-1 rounded" required>
+                                                <input type="number" name="sata_slots" value="{{ $motherboard->sata_slots }}" class="border p-1 rounded" required>
+                                                <input type="number" name="m2_slots" value="{{ $motherboard->m2_slots }}" class="border p-1 rounded" required>
+                                                <select name="m2_nvme_support" class="border p-1 rounded" required>
+                                                    <option value="1" {{ $motherboard->m2_nvme_support ? 'selected' : '' }}>Yes</option>
+                                                    <option value="0" {{ !$motherboard->m2_nvme_support ? 'selected' : '' }}>No</option>
+                                                </select>
+                                                <input type="number" name="pcie_version" value="{{ $motherboard->pcie_version }}" step="0.1" class="border p-1 rounded" required>
+                                                <input type="number" name="price" value="{{ $motherboard->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('motherboards.destroy', $motherboard->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="12" class="py-2 px-4 text-center text-gray-600">No motherboards found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $motherboards->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GPUs -->
+            <section id="gpus" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">GPUs</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add GPU Form -->
+                        <form action="{{ route('gpus.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <input type="number" name="pcie_version" placeholder="PCIe Version" step="0.1" class="border p-1 rounded" required>
+                                <input type="number" name="power_requirement" placeholder="Power Requirement (W)" class="border p-1 rounded" required>
+                                <input type="number" name="length" placeholder="Length (mm)" class="border p-1 rounded" required>
+                                <input type="number" name="height" placeholder="Height (mm)" class="border p-1 rounded" required>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add GPU</button>
+                            </div>
+                        </form>
+
+                        <!-- GPUs Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">PCIe Version</th>
+                                    <th class="py-2 px-4">Power Requirement (W)</th>
+                                    <th class="py-2 px-4">Length (mm)</th>
+                                    <th class="py-2 px-4">Height (mm)</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($gpus as $gpu)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $gpu->name }}</td>
+                                        <td class="py-2 px-4">{{ $gpu->pcie_version }}</td>
+                                        <td class="py-2 px-4">{{ $gpu->power_requirement }}</td>
+                                        <td class="py-2 px-4">{{ $gpu->length }}</td>
+                                        <td class="py-2 px-4">{{ $gpu->height }}</td>
+                                        <td class="py-2 px-4">{{ number_format($gpu->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('gpus.update', $gpu->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $gpu->name }}" class="border p-1 rounded" required>
+                                                <input type="number" name="pcie_version" value="{{ $gpu->pcie_version }}" step="0.1" class="border p-1 rounded" required>
+                                                <input type="number" name="power_requirement" value="{{ $gpu->power_requirement }}" class="border p-1 rounded" required>
+                                                <input type="number" name="length" value="{{ $gpu->length }}" class="border p-1 rounded" required>
+                                                <input type="number" name="height" value="{{ $gpu->height }}" class="border p-1 rounded" required>
+                                                <input type="number" name="price" value="{{ $gpu->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('gpus.destroy', $gpu->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="py-2 px-4 text-center text-gray-600">No GPUs found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $gpus->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RAMs -->
+            <section id="rams" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">RAMs</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add RAM Form -->
+                        <form action="{{ route('rams.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <select name="ram_type" class="border p-1 rounded" required>
+                                    <option value="DDR4">DDR4</option>
+                                    <option value="DDR5">DDR5</option>
+                                </select>
+                                <input type="number" name="ram_speed" placeholder="RAM Speed (MHz)" class="border p-1 rounded" required>
+                                <input type="number" name="capacity" placeholder="Capacity (GB)" class="border p-1 rounded" required>
+                                <input type="number" name="stick_count" placeholder="Stick Count" class="border p-1 rounded" required>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add RAM</button>
+                            </div>
+                        </form>
+
+                        <!-- RAMs Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">RAM Type</th>
+                                    <th class="py-2 px-4">RAM Speed (MHz)</th>
+                                    <th class="py-2 px-4">Capacity (GB)</th>
+                                    <th class="py-2 px-4">Stick Count</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($rams as $ram)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $ram->name }}</td>
+                                        <td class="py-2 px-4">{{ $ram->ram_type }}</td>
+                                        <td class="py-2 px-4">{{ $ram->ram_speed }}</td>
+                                        <td class="py-2 px-4">{{ $ram->capacity }}</td>
+                                        <td class="py-2 px-4">{{ $ram->stick_count }}</td>
+                                        <td class="py-2 px-4">{{ number_format($ram->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('rams.update', $ram->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $ram->name }}" class="border p-1 rounded" required>
+                                                <select name="ram_type" class="border p-1 rounded" required>
+                                                    <option value="DDR4" {{ $ram->ram_type == 'DDR4' ? 'selected' : '' }}>DDR4</option>
+                                                    <option value="DDR5" {{ $ram->ram_type == 'DDR5' ? 'selected' : '' }}>DDR5</option>
+                                                </select>
+                                                <input type="number" name="ram_speed" value="{{ $ram->ram_speed }}" class="border p-1 rounded" required>
+                                                <input type="number" name="capacity" value="{{ $ram->capacity }}" class="border p-1 rounded" required>
+                                                <input type="number" name="stick_count" value="{{ $ram->stick_count }}" class="border p-1 rounded" required>
+                                                <input type="number" name="price" value="{{ $ram->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('rams.destroy', $ram->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="py-2 px-4 text-center text-gray-600">No RAMs found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $rams->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Storages -->
+            <section id="storages" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Storages</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add Storage Form -->
+                        <form action="{{ route('storages.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <select name="type" class="border p-1 rounded" required>
+                                    <option value="M.2">M.2</option>
+                                    <option value="SATA">SATA</option>
+                                </select>
+                                <select name="is_nvme" class="border p-1 rounded" required>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                                <input type="number" name="capacity" placeholder="Capacity (GB)" class="border p-1 rounded" required>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add Storage</button>
+                            </div>
+                        </form>
+
+                        <!-- Storages Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">Type</th>
+                                    <th class="py-2 px-4">Is NVMe</th>
+                                    <th class="py-2 px-4">Capacity (GB)</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($storages as $storage)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $storage->name }}</td>
+                                        <td class="py-2 px-4">{{ $storage->type }}</td>
+                                        <td class="py-2 px-4">{{ $storage->is_nvme ? 'Yes' : 'No' }}</td>
+                                        <td class="py-2 px-4">{{ $storage->capacity }}</td>
+                                        <td class="py-2 px-4">{{ number_format($storage->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('storages.update', $storage->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $storage->name }}" class="border p-1 rounded" required>
+                                                <select name="type" class="border p-1 rounded" required>
+                                                    <option value="M.2" {{ $storage->type == 'M.2' ? 'selected' : '' }}>M.2</option>
+                                                    <option value="SATA" {{ $storage->type == 'SATA' ? 'selected' : '' }}>SATA</option>
+                                                </select>
+                                                <select name="is_nvme" class="border p-1 rounded" required>
+                                                    <option value="1" {{ $storage->is_nvme ? 'selected' : '' }}>Yes</option>
+                                                    <option value="0" {{ !$storage->is_nvme ? 'selected' : '' }}>No</option>
+                                                </select>
+                                                <input type="number" name="capacity" value="{{ $storage->capacity }}" class="border p-1 rounded" required>
+                                                <input type="number" name="price" value="{{ $storage->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('storages.destroy', $storage->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="py-2 px-4 text-center text-gray-600">No storages found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $storages->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Power Supplies -->
+            <section id="power-supplies" class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Power Supplies</h2>
+                <div class="card">
+                    <div class="p-4">
+                        <!-- Add Power Supply Form -->
+                        <form action="{{ route('power_supplies.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <input type="text" name="name" placeholder="Name" class="border p-1 rounded" required>
+                                <input type="number" name="wattage" placeholder="Wattage (W)" class="border p-1 rounded" required>
+                                <select name="form_factor" class="border p-1 rounded" required>
+                                    <option value="ATX">ATX</option>
+                                    <option value="SFX">SFX</option>
+                                </select>
+                                <input type="number" name="price" placeholder="Price (LKR)" step="0.01" class="border p-1 rounded" required>
+                                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Add Power Supply</button>
+                            </div>
+                        </form>
+
+                        <!-- Power Supplies Table -->
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4">Name</th>
+                                    <th class="py-2 px-4">Wattage (W)</th>
+                                    <th class="py-2 px-4">Form Factor</th>
+                                    <th class="py-2 px-4">Price (LKR)</th>
+                                    <th class="py-2 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($powerSupplies as $powerSupply)
+                                    <tr>
+                                        <td class="py-2 px-4">{{ $powerSupply->name }}</td>
+                                        <td class="py-2 px-4">{{ $powerSupply->wattage }}</td>
+                                        <td class="py-2 px-4">{{ $powerSupply->form_factor }}</td>
+                                        <td class="py-2 px-4">{{ number_format($powerSupply->price, 2) }}</td>
+                                        <td class="py-2 px-4">
+                                            <form action="{{ route('power_supplies.update', $powerSupply->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="text" name="name" value="{{ $powerSupply->name }}" class="border p-1 rounded" required>
+                                                <input type="number" name="wattage" value="{{ $powerSupply->wattage }}" class="border p-1 rounded" required>
+                                                <select name="form_factor" class="border p-1 rounded" required>
+                                                    <option value="ATX" {{ $powerSupply->form_factor == 'ATX' ? 'selected' : '' }}>ATX</option>
+                                                    <option value="SFX" {{ $powerSupply->form_factor == 'SFX' ? 'selected' : '' }}>SFX</option>
+                                                </select>
+                                                <input type="number" name="price" value="{{ $powerSupply->price }}" step="0.01" class="border p-1 rounded" required>
+                                                <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Edit</button>
+                                            </form>
+                                            <form action="{{ route('power_supplies.destroy', $powerSupply->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Are you sure?')">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-2 px-4 text-center text-gray-600">No power supplies found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <div class="mt-4">{{ $powerSupplies->links() }}</div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Quotations -->
             <section id="quotations" class="mb-8">
                 <h2 class="text-xl font-semibold mb-4">Quotation Actions</h2>
@@ -450,7 +946,7 @@
     <!-- Quotation Details Modal -->
     <div id="quotationModal" class="modal">
         <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <span class="modal-close" onclick="closeModal()">×</span>
             <h2 class="text-xl font-semibold mb-4">Quotation Details</h2>
             <div id="quotationDetails">
                 <p>Loading...</p>
