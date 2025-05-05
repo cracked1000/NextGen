@@ -99,7 +99,7 @@
                 </tr>
             </table>
 
-            <p>If you have any questions, feel free to contact us at support@nextgencomputing.com.</p>
+            <p>To continue with the build process please connect with us using whatsapp with the relavent Quotation number</p>
         </div>
         <div class="footer">
             <p>&copy; {{ date('Y') }} NextGen Computing. All rights reserved.</p>

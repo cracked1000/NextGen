@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,16 +100,7 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <!-- Header -->
-    <header class="bg-indigo-900 text-white p-4 shadow">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
-            </form>
-        </div>
-    </header>
+@include('include.header')
 
     <div class="flex">
         <!-- Main Content -->

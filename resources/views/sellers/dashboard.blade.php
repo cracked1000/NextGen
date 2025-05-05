@@ -33,8 +33,12 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Section -->
         <div class="bg-white shadow rounded-lg p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-800">Welcome, {{ $seller->first_name }} {{ $seller->last_name }}!</h2>
-            <p class="text-gray-600 mt-1">Email: {{ $seller->email }}</p>
+            @if (isset($seller))
+                <h2 class="text-xl font-semibold text-gray-800">Welcome, {{ $seller->first_name }} {{ $seller->last_name }}!</h2>
+                <p class="text-gray-600 mt-1">Email: {{ $seller->email }}</p>
+            @else
+                <p class="text-red-600">Error: Seller information not available.</p>
+            @endif
         </div>
 
         <!-- Success Message -->
@@ -116,7 +120,7 @@
                                                 @method('PATCH')
                                                 <div class="flex items-center space-x-2">
                                                     <label class="flex items-center">
-                                                        <input type="checkbox" name="is_accepted" value="1" {{ $order->is_accepted ? 'checked' : '' }} class="mr-1">
+                                                        <input type="checkbox" name="is_accepted" value="1" {{ $order->is_accepted ? 'checked' : '' }} onchange="this.form.querySelector('[name=is_shipped]').disabled = !this.checked" class="mr-1">
                                                         Accept
                                                     </label>
                                                     <label class="flex items-center">
@@ -152,7 +156,12 @@
                             <h4 class="text-lg font-bold text-gray-800 mb-2">{{ $part->part_name }}</h4>
                             <div class="space-y-1 text-gray-600">
                                 <p><span class="font-medium">Price:</span> LKR {{ number_format($part->price, 2) }}</p>
-                                <p><span class="font-medium">Status:</span> {{ $part->status }}</p>
+                                <p>
+                                    <span class="font-medium">Status:</span> 
+                                    <span class="inline-flex items-center px-2 py-1 text-sm font-medium rounded-full {{ $part->status == 'Available' ? 'bg-green-100 text-green-700' : ($part->status == 'Sold' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700') }}">
+                                        {{ $part->status }}
+                                    </span>
+                                </p>
                                 <p><span class="font-medium">Condition:</span> {{ $part->condition ?? 'N/A' }}</p>
                                 <p><span class="font-medium">Category:</span> {{ $part->category ?? 'N/A' }}</p>
                             </div>

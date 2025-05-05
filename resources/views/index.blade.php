@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -54,33 +54,101 @@
             background-color: red;
             border-radius: 50%;
         }
+
+        /* Style for expandable cards in Featured Builds */
+        .build-card {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .build-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+
+        .build-card:hover .build-details {
+            max-height: 200px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 50;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(to bottom right, #1f2937, #111827);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            cursor: pointer;
+            color: #fff;
+            font-size: 1.5rem;
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Particle Animation
             const particles = document.querySelector('.particles');
-            
             for (let i = 0; i < 100; i++) {
                 let particle = document.createElement('div');
                 particle.classList.add('particle');
-                
-                // Random positioning
                 particle.style.left = Math.random() * 100 + 'vw';
                 particle.style.top = Math.random() * 100 + 'vh';
-                
-                // Random size
                 let size = Math.random() * 5 + 1;
                 particle.style.width = size + 'px';
                 particle.style.height = size + 'px';
-                
-                // Random opacity
                 particle.style.opacity = Math.random() * 0.5 + 0.1;
-                
-                // Random animation duration
                 let animationDuration = Math.random() * 20 + 10;
                 particle.style.animation = `pulse ${animationDuration}s infinite alternate`;
-                
                 particles.appendChild(particle);
             }
+
+            // Modal Functionality
+            const modalTriggers = document.querySelectorAll('[data-modal-target]');
+            const modals = document.querySelectorAll('.modal');
+            const modalCloses = document.querySelectorAll('.modal-close');
+
+            modalTriggers.forEach(trigger => {
+                trigger.addEventListener('click', () => {
+                    const modalId = trigger.getAttribute('data-modal-target');
+                    const modal = document.getElementById(modalId);
+                    modal.style.display = 'flex';
+                });
+            });
+
+            modalCloses.forEach(close => {
+                close.addEventListener('click', () => {
+                    const modal = close.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+
+            // Close modal when clicking outside the modal content
+            modals.forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
         });
     </script>
 </head>
@@ -88,13 +156,8 @@
     @include('include.header')
 
     <div class="relative overflow-hidden pt-24">
-        <!-- Particles Background -->
         <div class="particles"></div>
-        
-        <!-- Gradient Overlay -->
         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/80 to-black/40 z-10"></div>
-        
-        <!-- Animated Background -->
         <div class="absolute inset-0 opacity-20">
             <div class="absolute w-full h-full" style="background-image: 
                 linear-gradient(45deg, transparent 0%, rgba(255,0,130,0.05) 50%, transparent 100%),
@@ -111,8 +174,8 @@
                         <div class="absolute -inset-4 bg-gradient-to-r from-blue-500/30 to-red-500/30 rounded-full blur-2xl"></div>
                         <div class="relative flex items-center justify-center">
                             <img src="images/cpu.png" alt="CPU" class="w-36 transform -rotate-12">
-                            <img src="images/Seekpng 2.png" alt="images/pc-right-image.png" class="w-64 ml-10 transform rotate-3">
-                            <img src="images/03.png" alt="images/pc-right-image.png" class="w-64  transform rotate-12">
+
+                            <img src="images/03.png" alt="images/pc-right-image.png" class="w-64 transform rotate-12">
                         </div>
                     </div>
                 </div>
@@ -127,28 +190,22 @@
                 </p>
                 
                 <div class="space-x-6 mb-20">
-                    <button class="relative group overflow-hidden bg-gradient-to-r from-red-600 to-pink-600 text-white py-4 px-8 rounded-lg text-xl font-semibold 
-                        transition transform hover:scale-105 shadow-lg">
-                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-red-600 to-pink-600 opacity-75 
-                        group-hover:opacity-0 transition-opacity duration-300 z-0"></span>
-                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-red-700 to-pink-700 opacity-0 
-                        group-hover:opacity-75 transition-opacity duration-300 z-0"></span>
+                    <a href="{{ route('quotation.index') }}" class="relative group overflow-hidden bg-gradient-to-r from-red-600 to-pink-600 text-white py-4 px-8 rounded-lg text-xl font-semibold transition transform hover:scale-105 shadow-lg inline-block">
+                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-red-600 to-pink-600 opacity-75 group-hover:opacity-0 transition-opacity duration-300 z-0"></span>
+                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-red-700 to-pink-700 opacity-0 group-hover:opacity-75 transition-opacity duration-300 z-0"></span>
                         <span class="relative z-10 flex items-center">
                             <i class="fas fa-cogs mr-2"></i>
                             BUILD AS A BEGINNER
                         </span>
-                    </button>
-                    <button class="relative group overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-8 rounded-lg text-xl font-semibold 
-                        transition transform hover:scale-105 shadow-lg">
-                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600 to-indigo-600 opacity-75 
-                        group-hover:opacity-0 transition-opacity duration-300 z-0"></span>
-                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-700 to-indigo-700 opacity-0 
-                        group-hover:opacity-75 transition-opacity duration-300 z-0"></span>
+                    </a>
+                    <a href="{{ route('build.index') }}" class="relative group overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-8 rounded-lg text-xl font-semibold transition transform hover:scale-105 shadow-lg inline-block">
+                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600 to-indigo-600 opacity-75 group-hover:opacity-0 transition-opacity duration-300 z-0"></span>
+                        <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-700 to-indigo-700 opacity-0 group-hover:opacity-75 transition-opacity duration-300 z-0"></span>
                         <span class="relative z-10 flex items-center">
                             <i class="fas fa-laptop-code mr-2"></i>
                             BUILD AS AN EXPERT
                         </span>
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="flex justify-center">
@@ -161,7 +218,6 @@
     </div>
 
     <section id="components" class="relative py-24 overflow-hidden">
-        <!-- Background Effects -->
         <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black"></div>
         <div class="absolute inset-0 opacity-10">
             <div class="absolute w-full h-full" style="background-image: 
@@ -183,7 +239,7 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <!-- Component 1 -->
+                <!-- Component 1: CPU -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-red-500/20 rounded-full blur-xl group-hover:bg-red-500/30 transition-colors"></div>
@@ -200,12 +256,12 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-red-400 transition-colors">CPU</h3>
                     <p class="text-gray-400 mb-4">Central Processing Unit - The brain of your computer that executes instructions</p>
-                    <a href="#" class="inline-flex items-center text-red-400 group-hover:text-red-300">
+                    <button data-modal-target="modal-cpu" class="inline-flex items-center text-red-400 group-hover:text-red-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Component 2 -->
+                <!-- Component 2: RAM -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-colors"></div>
@@ -221,12 +277,12 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-blue-400 transition-colors">RAM</h3>
                     <p class="text-gray-400 mb-4">Random Access Memory - Temporary storage that allows your PC to run multiple programs</p>
-                    <a href="#" class="inline-flex items-center text-blue-400 group-hover:text-blue-300">
+                    <button data-modal-target="modal-ram" class="inline-flex items-center text-blue-400 group-hover:text-blue-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Component 3 -->
+                <!-- Component 3: GPU -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/30 transition-colors"></div>
@@ -240,12 +296,12 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-green-400 transition-colors">GPU</h3>
                     <p class="text-gray-400 mb-4">Graphics Processing Unit - Powers graphics rendering for games and creative work</p>
-                    <a href="#" class="inline-flex items-center text-green-400 group-hover:text-green-300">
+                    <button data-modal-target="modal-gpu" class="inline-flex items-center text-green-400 group-hover:text-green-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Component 4 -->
+                <!-- Component 4: Motherboard -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-purple-500/20 rounded-full blur-xl group-hover:bg-purple-500/30 transition-colors"></div>
@@ -258,12 +314,12 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-purple-400 transition-colors">MOTHERBOARD</h3>
                     <p class="text-gray-400 mb-4">Main Circuit Board - The foundation that connects all your components together</p>
-                    <a href="#" class="inline-flex items-center text-purple-400 group-hover:text-purple-300">
+                    <button data-modal-target="modal-motherboard" class="inline-flex items-center text-purple-400 group-hover:text-purple-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Component 5 -->
+                <!-- Component 5: Storage -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur-xl group-hover:bg-yellow-500/30 transition-colors"></div>
@@ -276,12 +332,12 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-yellow-400 transition-colors">STORAGE</h3>
                     <p class="text-gray-400 mb-4">Data Storage Device - SSDs and HDDs that store your operating system and files</p>
-                    <a href="#" class="inline-flex items-center text-yellow-400 group-hover:text-yellow-300">
+                    <button data-modal-target="modal-storage" class="inline-flex items-center text-yellow-400 group-hover:text-yellow-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Component 6 -->
+                <!-- Component 6: Power Supply -->
                 <div class="component-card bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-700/30 transition-all duration-300 group glow-hover">
                     <div class="relative w-24 h-24 mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                         <div class="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:bg-orange-500/30 transition-colors"></div>
@@ -296,19 +352,82 @@
                     </div>
                     <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-orange-400 transition-colors">POWER SUPPLY</h3>
                     <p class="text-gray-400 mb-4">Electrical Power Unit - Provides stable power to all your PC components</p>
-                    <a href="#" class="inline-flex items-center text-orange-400 group-hover:text-orange-300">
+                    <button data-modal-target="modal-power-supply" class="inline-flex items-center text-orange-400 group-hover:text-orange-300 cursor-pointer">
                         Learn more <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
             
-            <div class="mt-16 text-center">
-                <a href="#" class="inline-block py-4 px-8 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg font-semibold hover:from-red-700 hover:to-pink-700 transition-colors shadow-lg">
-                    Start Building Your PC
-                </a>
-            </div>
+            
         </div>
     </section>
+
+    <!-- Modals for Components -->
+    <!-- CPU Modal -->
+    <div id="modal-cpu" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-red-400">CPU Use Case</h3>
+            <p class="text-gray-300">
+                The CPU is essential for all computing tasks. It handles everything from running your operating system to executing complex calculations in games, video editing software, and data analysis tools. A powerful CPU is crucial for gaming (e.g., high frame rates in titles like Cyberpunk 2077), multitasking (e.g., streaming while gaming), and professional workloads (e.g., 3D rendering in Blender).
+            </p>
+        </div>
+    </div>
+
+    <!-- RAM Modal -->
+    <div id="modal-ram" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-blue-400">RAM Use Case</h3>
+            <p class="text-gray-300">
+                RAM is vital for multitasking and running applications smoothly. It temporarily stores data that your CPU needs quick access to, such as open browser tabs, game assets, or video editing timelines. For example, 16GB of RAM is ideal for gaming and general use, while 32GB or more benefits creators working with large Photoshop files or 4K video editing in Adobe Premiere.
+            </p>
+        </div>
+    </div>
+
+    <!-- GPU Modal -->
+    <div id="modal-gpu" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-green-400">GPU Use Case</h3>
+            <p class="text-gray-300">
+                The GPU is critical for rendering visuals, making it essential for gaming, graphic design, and video editing. It powers high-quality graphics in games (e.g., ray tracing in AAA titles), accelerates rendering in 3D modeling software like Maya, and supports AI workloads like machine learning with frameworks such as TensorFlow. A good GPU can also enhance streaming quality on platforms like OBS.
+            </p>
+        </div>
+    </div>
+
+    <!-- Motherboard Modal -->
+    <div id="modal-motherboard" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-purple-400">Motherboard Use Case</h3>
+            <p class="text-gray-300">
+                The motherboard connects all PC components, enabling communication between the CPU, RAM, GPU, and storage. It determines compatibility (e.g., socket type for your CPU), expandability (e.g., number of RAM slots or PCIe lanes for GPUs), and features like overclocking support or Wi-Fi connectivity. For example, a high-end motherboard is necessary for a gaming PC with multiple GPUs or NVMe SSDs.
+            </p>
+        </div>
+    </div>
+
+    <!-- Storage Modal -->
+    <div id="modal-storage" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-yellow-400">Storage Use Case</h3>
+            <p class="text-gray-300">
+                Storage devices like SSDs and HDDs hold your operating system, applications, and files. SSDs offer fast boot times and quick game loading (e.g., a 1TB NVMe SSD for Windows and games), while HDDs provide cost-effective high-capacity storage for large media libraries (e.g., a 4TB HDD for video archives). For creators, a dual setup with an SSD for editing software and an HDD for raw footage is ideal.
+            </p>
+        </div>
+    </div>
+
+    <!-- Power Supply Modal -->
+    <div id="modal-power-supply" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 class="text-2xl font-bold mb-4 text-orange-400">Power Supply Use Case</h3>
+            <p class="text-gray-300">
+                The power supply (PSU) delivers stable electricity to all components, ensuring system reliability. A high-wattage PSU (e.g., 850W) is necessary for power-hungry builds like gaming PCs with RTX 4090 GPUs, while a 650W PSU suits budget builds. Efficiency ratings (e.g., 80+ Gold) reduce energy waste, and modular PSUs improve cable management for better airflow in compact cases.
+            </p>
+        </div>
+    </div>
 
     <!-- Featured Builds Section -->
     <section class="py-24 relative">
@@ -326,89 +445,69 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Build 1 -->
-                <div class="relative group overflow-hidden rounded-2xl">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70 z-10"></div>
-                    <img src="/api/placeholder/400/500" alt="Gaming PC Build" class="w-full h-80 object-cover object-center group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute bottom-0 left-0 right-0 p-6 z-20">
-                        <h3 class="text-xl font-bold text-white mb-2">Ultimate Gaming Rig</h3>
-                        <p class="text-gray-300 text-sm mb-4">RTX 4080 | Ryzen 9 7950X | 64GB RAM</p>
-                        <a href="#" class="text-blue-400 text-sm flex items-center">
-                            View Build <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
+                <!-- Build 1: Ultimate Gaming Rig -->
+                <div class="build-card relative bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-6 text-center border border-gray-700/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
+                    <div class="flex justify-center mb-4">
+                        <i class="fas fa-gamepad text-5xl text-blue-400"></i>
                     </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Ultimate Gaming Rig</h3>
+                    <p class="text-gray-300 text-sm mb-4">RTX 4080 | Ryzen 9 7950X | 64GB RAM</p>
+                    <div class="build-details text-gray-400 text-sm">
+                        <p>Built for 4K gaming with ray tracing. Includes liquid cooling, RGB lighting, and a custom case design for optimal airflow.</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Storage: 2TB NVMe SSD</li>
+                            <li>PSU: 850W Gold-rated</li>
+                            <li>Case: Lian Li PC-O11 Dynamic</li>
+                        </ul>
+                    </div>
+                    <a href="#" class="text-blue-400 text-sm flex items-center justify-center mt-4">
+                        View Build <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
                 </div>
                 
-                <!-- Build 2 -->
-                <div class="relative group overflow-hidden rounded-2xl">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70 z-10"></div>
-                    <img src="/api/placeholder/400/500" alt="Workstation PC Build" class="w-full h-80 object-cover object-center group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute bottom-0 left-0 right-0 p-6 z-20">
-                        <h3 class="text-xl font-bold text-white mb-2">Content Creator Workstation</h3>
-                        <p class="text-gray-300 text-sm mb-4">RTX 4090 | i9-14900K | 128GB RAM</p>
-                        <a href="#" class="text-pink-400 text-sm flex items-center">
-                            View Build <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
+                <!-- Build 2: Content Creator Workstation -->
+                <div class="build-card relative bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-6 text-center border border-gray-700/30 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/20">
+                    <div class="flex justify-center mb-4">
+                        <i class="fas fa-video text-5xl text-pink-400"></i>
                     </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Content Creator Workstation</h3>
+                    <p class="text-gray-300 text-sm mb-4">RTX 4090 | i9-14900K | 128GB RAM</p>
+                    <div class="build-details text-gray-400 text-sm">
+                        <p>Designed for 8K video editing and 3D rendering. Features dual GPUs and a high-speed NVMe storage array.</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Storage: 4TB NVMe SSD + 8TB HDD</li>
+                            <li>PSU: 1000W Platinum-rated</li>
+                            <li>Cooling: Custom water loop</li>
+                        </ul>
+                    </div>
+                    <a href="#" class="text-pink-400 text-sm flex items-center justify-center mt-4">
+                        View Build <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
                 </div>
                 
-                <!-- Build 3 -->
-                <div class="relative group overflow-hidden rounded-2xl">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70 z-10"></div>
-                    <img src="/api/placeholder/400/500" alt="Budget PC Build" class="w-full h-80 object-cover object-center group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute bottom-0 left-0 right-0 p-6 z-20">
-                        <h3 class="text-xl font-bold text-white mb-2">Budget Gaming PC</h3>
-                        <p class="text-gray-300 text-sm mb-4">RTX 4060 | Ryzen 5 7600X | 32GB RAM</p>
-                        <a href="#" class="text-green-400 text-sm flex items-center">
-                            View Build <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
+                <!-- Build 3: Budget Gaming PC -->
+                <div class="build-card relative bg-gradient-to-br from-gray-800/50 to-gray-900/80 backdrop-blur-sm rounded-2xl p-6 text-center border border-gray-700/30 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20">
+                    <div class="flex justify-center mb-4">
+                        <i class="fas fa-wallet text-5xl text-green-400"></i>
                     </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Budget Gaming PC</h3>
+                    <p class="text-gray-300 text-sm mb-4">RTX 4060 | Ryzen 5 7600X | 32GB RAM</p>
+                    <div class="build-details text-gray-400 text-sm">
+                        <p>Affordable build for 1080p gaming. Perfect for esports titles and casual gaming.</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Storage: 1TB NVMe SSD</li>
+                            <li>PSU: 650W Bronze-rated</li>
+                            <li>Case: NZXT H510</li>
+                        </ul>
+                    </div>
+                    <a href="#" class="text-green-400 text-sm flex items-center justify-center mt-4">
+                        View Build <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- Call to Action -->
-    <section class="py-20 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-900/40 to-purple-900/40"></div>
-        <div class="absolute inset-0" style="background-image: 
-            radial-gradient(circle at 20% 50%, rgba(111,71,255,0.1) 0%, transparent 40%),
-            radial-gradient(circle at 80% 50%, rgba(255,92,187,0.1) 0%, transparent 40%);
-        "></div>
-        
-        <div class="container mx-auto relative z-10 px-4">
-            <div class="max-w-4xl mx-auto bg-gradient-to-br from-gray-800/70 to-gray-900/70 backdrop-blur-xl p-12 rounded-3xl border border-gray-700/50 shadow-2xl">
-                <div class="text-center">
-                    <h2 class="text-4xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-blue-500">
-                        READY TO BUILD YOUR DREAM PC?
-                    </h2>
-                    <p class="text-gray-300 mb-8 text-lg">
-                        Start your journey today and create a custom PC that perfectly matches your needs and budget.
-                    </p>
-                    <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                        <a href="#" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white py-3 px-8 rounded-lg font-semibold transition-all shadow-lg hover:shadow-pink-500/30">
-                            Start Building
-                        </a>
-                        <a href="#" class="bg-transparent border border-gray-600 hover:border-white text-white py-3 px-8 rounded-lg font-semibold transition-all">
-                            View Guides
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-black py-12 border-t border-gray-800">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <i class="fas fa-microchip text-red-500 text-xl"></i>
-                        <span class="text-lg font-bold text-white">NextGen Computing</span>
-                    </div>
-                    <p class="text-gray-400 mb-4">
-                        Your trusted partner for custom PC building. Providing high-quality components and expert guidance since 2015.
-                    </p>
-                    <div class="flex space-x-4">
-                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+    @include('include.footer')
+</body>
+</html>

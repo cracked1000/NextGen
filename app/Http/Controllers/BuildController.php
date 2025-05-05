@@ -19,7 +19,6 @@ class BuildController extends Controller
 {
     public function index()
     {
-        // Fetch CPUs without the prices.retailer relationship
         $cpus = Cpu::all();
         return view('build', compact('cpus'));
     }
@@ -35,7 +34,7 @@ class BuildController extends Controller
             Log::error("Error fetching compatible motherboards for CPU ID {$cpuId}: " . $e->getMessage());
             return response()->json(['error' => 'Failed to fetch compatible motherboards'], 500);
         }
-    }
+    } 
 
     public function getCompatibleGpus($cpuId, $motherboardId)
     {
@@ -62,7 +61,7 @@ class BuildController extends Controller
 
             Log::info('Motherboard found: ' . $motherboard->name . ', RAM Type: ' . $motherboard->ram_type . ', RAM Speed: ' . $motherboard->ram_speed . ', RAM Slots: ' . $motherboard->ram_slots);
 
-            $selectedRamIds = $request->query('selected_ram_ids', []); // Array of selected RAM IDs
+            $selectedRamIds = $request->query('selected_ram_ids', []);
             if (!is_array($selectedRamIds)) {
                 $selectedRamIds = $selectedRamIds ? [$selectedRamIds] : [];
             }
@@ -72,7 +71,6 @@ class BuildController extends Controller
                 ->get();
             Log::info('RAMs after type and speed filter: ' . $rams->count());
 
-            // Calculate available slots
             $availableSlots = $motherboard->ram_slots;
             if (!empty($selectedRamIds)) {
                 $selectedRams = Ram::whereIn('id', $selectedRamIds)->get();
@@ -113,7 +111,6 @@ class BuildController extends Controller
             $motherboard = Motherboard::findOrFail($motherboardId);
             $storages = Storage::all();
 
-            // Track used slots
             $usedSataSlots = 0;
             $usedM2Slots = 0;
             if (!empty($selectedStorageIds)) {
@@ -162,20 +159,18 @@ class BuildController extends Controller
             $cpu = Cpu::findOrFail($cpuId);
             $motherboard = Motherboard::findOrFail($motherboardId);
 
-            // Calculate total power requirement
             $totalPower = 0;
             $totalPower += $gpu->power_requirement ?? 0;
             $totalPower += $cpu->power_requirement ?? 0;
-            $totalPower += 50; // Base power for motherboard
-            $totalPower += 50; // Additional power for RAM, storage, etc.
-            $totalPower *= 1.3; // 30% buffer
+            $totalPower += 50;
+            $totalPower += 50;
+            $totalPower *= 1.3;
 
-            // GPU size constraints based on motherboard form factor
             $maxGpuLength = 0;
             $maxGpuHeight = 0;
             if ($motherboard->form_factor === 'ATX') {
-                $maxGpuLength = 350; // mm
-                $maxGpuHeight = 150; // mm
+                $maxGpuLength = 350;
+                $maxGpuHeight = 150;
             } elseif ($motherboard->form_factor === 'mATX') {
                 $maxGpuLength = 300;
                 $maxGpuHeight = 130;
@@ -188,7 +183,6 @@ class BuildController extends Controller
                 return response()->json(['error' => 'GPU is too large for the selected motherboard form factor'], 400);
             }
 
-            // Filter power supplies
             $powerSupplies = PowerSupply::where('wattage', '>=', $totalPower)
                 ->where('form_factor', $motherboard->form_factor)
                 ->get();
@@ -202,137 +196,142 @@ class BuildController extends Controller
 
     public function saveBuild(Request $request)
     {
-    \Log::info('saveBuild method called with data:', $request->all());
+        \Log::info('saveBuild method called with data:', $request->all());
 
-    try {
-        $validated = $request->validate([
-            'cpu_id' => 'required|exists:cpus,id',
-            'motherboard_id' => 'required|exists:motherboards,id',
-            'gpu_id' => 'required|exists:gpus,id',
-            'ram_ids' => 'required|array|min:1',
-            'ram_ids.*' => 'exists:rams,id',
-            'storage_ids' => 'required|array|min:1',
-            'storage_ids.*' => 'exists:storages,id',
-            'power_supply_id' => 'required|exists:power_supplies,id',
-            'total_price' => 'required|numeric|min:0',
-            'name' => 'nullable|string|max:255',
-        ]);
+        try {
+            $validated = $request->validate([
+                'cpu_id' => 'required|exists:cpus,id',
+                'motherboard_id' => 'required|exists:motherboards,id',
+                'gpu_id' => 'required|exists:gpus,id',
+                'ram_ids' => 'required|array|min:1',
+                'ram_ids.*' => 'exists:rams,id',
+                'storage_ids' => 'required|array|min:1',
+                'storage_ids.*' => 'exists:storages,id',
+                'power_supply_id' => 'required|exists:power_supplies,id',
+                'total_price' => 'required|numeric|min:0',
+                'name' => 'nullable|string|max:255',
+            ]);
 
-        \Log::info('Validated data:', $validated);
+            \Log::info('Validated data:', $validated);
 
-        // Calculate total price to verify
-        $cpu = Cpu::findOrFail($validated['cpu_id']);
-        $motherboard = Motherboard::findOrFail($validated['motherboard_id']);
-        $gpu = Gpu::findOrFail($validated['gpu_id']);
-        $rams = Ram::whereIn('id', $validated['ram_ids'])->get();
-        $storages = Storage::whereIn('id', $validated['storage_ids'])->get();
-        $powerSupply = PowerSupply::findOrFail($validated['power_supply_id']);
+            $cpu = Cpu::findOrFail($validated['cpu_id']);
+            $motherboard = Motherboard::findOrFail($validated['motherboard_id']);
+            $gpu = Gpu::findOrFail($validated['gpu_id']);
+            $rams = Ram::whereIn('id', $validated['ram_ids'])->get();
+            $storages = Storage::whereIn('id', $validated['storage_ids'])->get();
+            $powerSupply = PowerSupply::findOrFail($validated['power_supply_id']);
 
-        $calculatedTotalPrice = $cpu->price +
-                               $motherboard->price +
-                               $gpu->price +
-                               $rams->sum('price') +
-                               $storages->sum('price') +
-                               $powerSupply->price;
+            $calculatedTotalPrice = $cpu->price +
+                                   $motherboard->price +
+                                   $gpu->price +
+                                   $rams->sum('price') +
+                                   $storages->sum('price') +
+                                   $powerSupply->price;
 
-        \Log::info('Calculated total price: ' . $calculatedTotalPrice . ', Provided total price: ' . $validated['total_price']);
+            \Log::info('Calculated total price: ' . $calculatedTotalPrice . ', Provided total price: ' . $validated['total_price']);
 
-        if (abs($calculatedTotalPrice - $validated['total_price']) > 0.01) {
-            \Log::error('Total price mismatch. Calculated: ' . $calculatedTotalPrice . ', Provided: ' . $validated['total_price']);
-            return redirect()->back()->withErrors(['total_price' => 'The provided total price does not match the calculated total.']);
+            if (abs($calculatedTotalPrice - $validated['total_price']) > 0.01) {
+                \Log::error('Total price mismatch. Calculated: ' . $calculatedTotalPrice . ', Provided: ' . $validated['total_price']);
+                return redirect()->back()->withErrors(['total_price' => 'The provided total price does not match the calculated total.']);
+            }
+
+            $build = Build::create([
+                'user_id' => auth()->id(),
+                'name' => $validated['name'] ?? 'My Build ' . now()->format('Y-m-d H:i:s'),
+                'cpu_id' => $validated['cpu_id'],
+                'motherboard_id' => $validated['motherboard_id'],
+                'gpu_id' => $validated['gpu_id'],
+                'power_supply_id' => $validated['power_supply_id'],
+                'total_price' => $validated['total_price'],
+            ]);
+
+            \Log::info('Build created with ID: ' . $build->id . ' for user ID: ' . auth()->id());
+
+            $build->rams()->sync($validated['ram_ids']);
+            $build->storages()->sync($validated['storage_ids']);
+
+            \Log::info('RAMs synced for build ID: ' . $build->id, $validated['ram_ids']);
+            \Log::info('Storages synced for build ID: ' . $build->id, $validated['storage_ids']);
+
+            return redirect()->route('customer.profile')->with('success', 'Build saved successfully!');
+        } catch (\Exception $e) {
+            \Log::error('Error saving build: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to save build: ' . $e->getMessage());
+        }
+    }
+
+    public function purchase($buildId)
+    {
+        \Log::info('Purchase route accessed - Build ID Parameter: ' . $buildId . ', Auth ID: ' . (auth()->id() ?? 'null'));
+
+        if (!is_numeric($buildId) || $buildId <= 0) {
+            \Log::error('Invalid Build ID: ' . $buildId);
+            return redirect()->route('customer.profile')->with('error', 'Invalid build ID.');
         }
 
-        // Save the build
-        $build = Build::create([
-            'user_id' => auth()->id(),
-            'name' => $validated['name'] ?? 'My Build ' . now()->format('Y-m-d H:i:s'),
-            'cpu_id' => $validated['cpu_id'],
-            'motherboard_id' => $validated['motherboard_id'],
-            'gpu_id' => $validated['gpu_id'],
-            'power_supply_id' => $validated['power_supply_id'],
-            'total_price' => $validated['total_price'],
-        ]);
+        if (!auth()->check()) {
+            \Log::warning('Purchase attempt failed - No authenticated user');
+            return redirect()->route('login')->with('error', 'Please log in to purchase a build.');
+        }
 
-        \Log::info('Build created with ID: ' . $build->id . ' for user ID: ' . auth()->id());
+        \Log::info('Attempting to find build with ID: ' . $buildId);
+        $build = Build::with([
+            'user',
+            'cpu',
+            'motherboard',
+            'gpu',
+            'rams',
+            'storages',
+            'powerSupply'
+        ])->find($buildId);
 
-        // Attach RAMs and Storages
-        $build->rams()->sync($validated['ram_ids']);
-        $build->storages()->sync($validated['storage_ids']);
+        if (!$build) {
+            \Log::error('Build not found for ID: ' . $buildId);
+            return redirect()->route('customer.profile')->with('error', 'Build not found.');
+        }
 
-        \Log::info('RAMs synced for build ID: ' . $build->id, $validated['ram_ids']);
-        \Log::info('Storages synced for build ID: ' . $build->id, $validated['storage_ids']);
+        if ($build instanceof \Illuminate\Database\Eloquent\Collection) {
+            \Log::error('Unexpected collection returned for Build ID: ' . $buildId);
+            return redirect()->route('customer.profile')->with('error', 'An error occurred while retrieving the build.');
+        }
 
-        return redirect()->route('customer.profile')->with('success', 'Build saved successfully!');
-    } catch (\Exception $e) {
-        \Log::error('Error saving build: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Failed to save build: ' . $e->getMessage());
-    }}
-  
-    public function purchase($buildId, Build $build = null)
-        {
-            \Log::info('Purchase route accessed - Build ID Parameter: ' . $buildId . ', Auth ID: ' . (auth()->id() ?? 'null'));
+        \Log::info('Purchase attempt - Auth ID: ' . auth()->id() . ', Build ID: ' . $build->id . ', Build User ID: ' . $build->user_id . ', Build Name: ' . ($build->name ?? 'Build #' . $build->id));
 
-            if (!auth()->check()) {
-                \Log::warning('Purchase attempt failed - No authenticated user');
-                return redirect()->route('login')->with('error', 'Please log in to purchase a build.');
-            }
+        if ($build->user_id !== auth()->id()) {
+            \Log::warning('Authorization failed - Auth ID: ' . auth()->id() . ', Build User ID: ' . $build->user_id);
+            return redirect()->route('customer.profile')->with('error', 'You are not authorized to purchase this build.');
+        }
 
-            \Log::info('Attempting to find build with ID: ' . $buildId);
-            $build = Build::with([
-                'user',
-                'cpu',
-                'motherboard',
-                'gpu',
-                'rams',
-                'storages',
-                'powerSupply'
-            ])->find($buildId);
-            if (!$build) {
-                \Log::error('Build not found for ID: ' . $buildId);
-                return redirect()->route('customer.profile')->with('error', 'Build not found.');
-            }
+        try {
+            $quotationNumber = QuotationAction::generateQuotationNumber();
 
-            \Log::info('Purchase attempt - Auth ID: ' . auth()->id() . ', Build ID: ' . $build->id . ', Build User ID: ' . $build->user_id . ', Build Name: ' . ($build->name ?? 'Build #' . $build->id));
-
-            if ($build->user_id !== auth()->id()) {
-                \Log::warning('Authorization failed - Auth ID: ' . auth()->id() . ', Build User ID: ' . $build->user_id);
-                return redirect()->route('customer.profile')->with('error', 'You are not authorized to purchase this build.');
-            }
-
-            try {
-                // Generate a unique quotation number
-                $quotationNumber = QuotationAction::generateQuotationNumber();
-
-                // Store the quotation in QuotationAction
-                $quotationAction = QuotationAction::create([
-                    'user_id' => auth()->id(),
-                    'action' => 'created',
-                    'build_details' => [
-                        'build_id' => $build->id,
-                        'name' => $build->name ?? 'Build #' . $build->id,
-                        'total_price' => $build->total_price,
-                        'components' => [
-                            'cpu' => $build->cpu ? $build->cpu->name : 'Not selected',
-                            'motherboard' => $build->motherboard ? $build->motherboard->name : 'Not selected',
-                            'gpu' => $build->gpu ? $build->gpu->name : 'Not selected',
-                            'ram' => $build->rams->isEmpty() ? 'Not selected' : $build->rams->pluck('name')->toArray(),
-                            'storage' => $build->storages->isEmpty() ? 'Not selected' : $build->storages->pluck('name')->toArray(),
-                            'power_supply' => $build->powerSupply ? $build->powerSupply->name : 'Not selected',
-                        ],
-                    ],
-                    'quotation_number' => $quotationNumber,
-                    'source' => 'Build PC',
+            $quotationAction = QuotationAction::create([
+                'user_id' => auth()->id(),
+                'action' => 'created',
+                'build_details' => [
                     'build_id' => $build->id,
-                    'quotation_request_id' => null,
-                ]);
+                    'name' => $build->name ?? 'Build #' . $build->id,
+                    'total_price' => $build->total_price,
+                    'components' => [
+                        'cpu' => $build->cpu ? $build->cpu->name : 'Not selected',
+                        'motherboard' => $build->motherboard ? $build->motherboard->name : 'Not selected',
+                        'gpu' => $build->gpu ? $build->gpu->name : 'Not selected',
+                        'ram' => $build->rams->isEmpty() ? 'Not selected' : $build->rams->pluck('name')->toArray(),
+                        'storage' => $build->storages->isEmpty() ? 'Not selected' : $build->storages->pluck('name')->toArray(),
+                        'power_supply' => $build->powerSupply ? $build->powerSupply->name : 'Not selected',
+                    ],
+                ],
+                'quotation_number' => $quotationNumber,
+                'source' => 'Build PC',
+                'build_id' => $build->id,
+                'quotation_request_id' => null,
+            ]);
 
-                // Send the email with the quotation number and source
-                Mail::to($build->user->email)->send(new BuildPurchased($build, $quotationNumber, $quotationAction->source));
-                return redirect()->route('customer.profile')->with('success', 'Build purchased successfully! A confirmation email has been sent to your email address.');
-            } catch (\Exception $e) {
-                \Log::error('Error sending build purchase email: ' . $e->getMessage());
-                return redirect()->route('customer.profile')->with('error', 'There was an error processing your purchase. Please try again later.');
-            }
+            Mail::to($build->user->email)->send(new BuildPurchased($build, $quotationNumber, $quotationAction->source));
+            return redirect()->route('customer.profile')->with('success', 'Build purchased successfully! A confirmation email has been sent to your email address.');
+        } catch (\Exception $e) {
+            \Log::error('Error sending build purchase email: ' . $e->getMessage());
+            return redirect()->route('customer.profile')->with('error', 'There was an error processing your purchase. Please try again later.');
         }
-    
+    }
 }

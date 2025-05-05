@@ -40,6 +40,7 @@
         <li><strong>Power Supply:</strong> {{ $build->powerSupply ? $build->powerSupply->name : 'Not selected' }}</li>
     </ul>
 
-    <p>Thank you for choosing NextGen Computing!</p>
+    <p>To continue with the build process please connect with us using whatsapp with the relavent Quotation number</p>
+    <p>https://wa.me/94774101481</p>
 </body>
 </html>

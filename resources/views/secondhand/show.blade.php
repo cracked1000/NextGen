@@ -79,7 +79,7 @@
                     </a>
 
                     @if($part->status === 'Available')
-                        <a href="{{ route('secondhand.buy_form', $part->id) }}" class="inline-block bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg">
+                        <a href="{{ route('secondhand.buy', $part->id) }}" class="inline-block bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg">
                             Buy Now
                         </a>
                     @endif
