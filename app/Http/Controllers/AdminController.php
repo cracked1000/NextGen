@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SecondHandPart;
-use App\Models\User;
-use App\Models\Order;
-use App\Models\QuotationAction;
+use Carbon\Carbon;
 use App\Models\Cpu;
-use App\Models\Motherboard;
 use App\Models\Gpu;
 use App\Models\Ram;
+use App\Models\User;
+use App\Models\Order;
 use App\Models\Storage;
+use App\Models\Technician;
+use App\Models\Motherboard;
 use App\Models\PowerSupply;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+use App\Models\SecondHandPart;
 
+use App\Models\QuotationAction;
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
@@ -33,6 +34,9 @@ class AdminController extends Controller
         $totalRams = Ram::count();
         $totalStorages = Storage::count();
         $totalPowerSupplies = PowerSupply::count();
+
+        // Fetch technicians for the Technician Network section
+        $technicians = Technician::paginate(10);
 
         // Queries
         $allUsersQuery = User::select('id', 'first_name', 'last_name', 'email', 'role', 'created_at')
@@ -132,6 +136,7 @@ class AdminController extends Controller
             'totalRams',
             'totalStorages',
             'totalPowerSupplies',
+            'technicians',
             'sellers',
             'customers',
             'parts',
@@ -666,4 +671,52 @@ class AdminController extends Controller
         $powerSupply->delete();
         return redirect()->route('admin.dashboard')->with('success', 'Power Supply deleted successfully.');
     }
+
+    public function storeTechnician(Request $request)
+    {
+        $request->validate([
+            'district' => 'required|string|max:255',
+            'town' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:255',
+        ]);
+
+        Technician::create([
+            'district' => $request->district,
+            'town' => $request->town,
+            'name' => $request->name,
+            'contact_number' => $request->contact_number,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Technician added successfully.');
+    }
+
+    public function updateTechnician(Request $request, $id)
+    {
+        $request->validate([
+            'district' => 'required|string|max:255',
+            'town' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:255',
+        ]);
+
+        $technician = Technician::findOrFail($id);
+        $technician->update([
+            'district' => $request->district,
+            'town' => $request->town,
+            'name' => $request->name,
+            'contact_number' => $request->contact_number,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Technician updated successfully.');
+    }
+
+    public function destroyTechnician($id)
+    {
+        $technician = Technician::findOrFail($id);
+        $technician->delete();
+
+        return redirect()->route('admin.dashboard')->with('success', 'Technician deleted successfully.');
+    }
+
 }
