@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TechnicalController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\SignupController;
@@ -11,7 +12,9 @@ use App\Http\Controllers\BuildController;
 use App\Http\Controllers\CompatibilityController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\TechnicianController;
 use Illuminate\Support\Facades\Auth;
+
 
 // Public Routes
 Route::get('/', function () {
@@ -90,7 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/sellers/parts/{id}', [SellerController::class, 'updatePart'])->name('seller.update_part');
     Route::delete('/sellers/parts/{id}', [SellerController::class, 'deletePart'])->name('seller.delete_part');
     Route::post('/sellers/orders/{id}/update-status', [SellerController::class, 'updateOrderStatus'])->name('seller.orders.update-status');
- 
+
 });
 
 // Admin Routes
@@ -116,7 +119,7 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::delete('/admin/quotations/{id}', [AdminController::class, 'deleteQuotation'])->name('admin.delete_quotation');
     Route::get('/admin/quotations/{id}', [AdminController::class, 'getQuotationDetails'])->name('admin.get_quotation_details');
     Route::patch('/admin/orders/{id}/verify', [AdminController::class, 'updateVerificationStatus'])->name('admin.orders.verify');
-    
+
 
     Route::post('/admin/cpus', [AdminController::class, 'addCpu'])->name('cpus.store');
     Route::patch('/admin/cpus/{id}', [AdminController::class, 'editCpu'])->name('cpus.update');
@@ -142,6 +145,10 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::patch('/admin/power-supplies/{id}', [AdminController::class, 'editPowerSupply'])->name('power_supplies.update');
     Route::delete('/admin/power-supplies/{id}', [AdminController::class, 'deletePowerSupply'])->name('power_supplies.destroy');
 
+    Route::post('/admin/technicians', [AdminController::class, 'storeTechnician'])->name('admin.technicians.store');
+    Route::patch('/admin/technicians/{id}', [AdminController::class, 'updateTechnician'])->name('admin.technicians.update');
+    Route::delete('/admin/technicians/{id}', [AdminController::class, 'destroyTechnician'])->name('admin.technicians.destroy');
+
 });
 
 // Quotation Routes
@@ -152,3 +159,6 @@ Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBu
 
 
 //Route::patch('/customer/orders/{id}/mark-received', [CustomerController::class, 'orders'])->name('customer.orders');
+
+
+Route::get('/technical', [TechnicalController::class, 'index'])->name('technical.network');

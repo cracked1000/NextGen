@@ -45,6 +45,9 @@
                 <a class="hover:text-blue-500" href="{{ route('build.index') }}">Build PC</a>
                 <a class="hover:text-blue-500" href="{{ route('secondhand.index') }}">Market</a>
                 <a class="hover:text-blue-500" href="{{ route('quotation.index') }}">Quotation Generator</a>
+                <a class="hover:text-blue-500" href="{{ route('technical.network') }}">Technical Network</a>
+                
+
 
                 @if (Auth::check())
                     @if (Auth::user()->role === 'seller')
