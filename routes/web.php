@@ -13,8 +13,8 @@ use App\Http\Controllers\CompatibilityController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\TechnicianController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Auth;
-
 
 // Public Routes
 Route::get('/', function () {
@@ -27,6 +27,12 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/signup', [SignupController::class, 'showSignupForm'])->name('signup');
 Route::post('/signup', [SignupController::class, 'store'])->name('signup.store');
+
+Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+Route::middleware('auth')->group(function () {
+    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+});
+
 
 // Customer Routes
 Route::middleware('auth')->group(function () {
@@ -93,7 +99,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/sellers/parts/{id}', [SellerController::class, 'updatePart'])->name('seller.update_part');
     Route::delete('/sellers/parts/{id}', [SellerController::class, 'deletePart'])->name('seller.delete_part');
     Route::post('/sellers/orders/{id}/update-status', [SellerController::class, 'updateOrderStatus'])->name('seller.orders.update-status');
-
 });
 
 // Admin Routes
@@ -119,7 +124,6 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::delete('/admin/quotations/{id}', [AdminController::class, 'deleteQuotation'])->name('admin.delete_quotation');
     Route::get('/admin/quotations/{id}', [AdminController::class, 'getQuotationDetails'])->name('admin.get_quotation_details');
     Route::patch('/admin/orders/{id}/verify', [AdminController::class, 'updateVerificationStatus'])->name('admin.orders.verify');
-
 
     Route::post('/admin/cpus', [AdminController::class, 'addCpu'])->name('cpus.store');
     Route::patch('/admin/cpus/{id}', [AdminController::class, 'editCpu'])->name('cpus.update');
@@ -148,7 +152,6 @@ Route::middleware([\App\Http\Middleware\AdminAuth::class])->group(function () {
     Route::post('/admin/technicians', [AdminController::class, 'storeTechnician'])->name('admin.technicians.store');
     Route::patch('/admin/technicians/{id}', [AdminController::class, 'updateTechnician'])->name('admin.technicians.update');
     Route::delete('/admin/technicians/{id}', [AdminController::class, 'destroyTechnician'])->name('admin.technicians.destroy');
-
 });
 
 // Quotation Routes
@@ -157,8 +160,5 @@ Route::post('/quotation/generate', [QuotationController::class, 'generate'])->na
 Route::get('/quotation/download/{spec}', [QuotationController::class, 'download'])->name('quotation.download');
 Route::post('/quotation/send-email/{spec}', [QuotationController::class, 'sendBuildEmail'])->name('quotation.send_email');
 
-
-//Route::patch('/customer/orders/{id}/mark-received', [CustomerController::class, 'orders'])->name('customer.orders');
-
-
+Route::get('/fetch-nearby-shops', [TechnicalController::class, 'fetchNearbyShops'])->name('fetch.nearby.shops');
 Route::get('/technical', [TechnicalController::class, 'index'])->name('technical.network');

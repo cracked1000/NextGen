@@ -1,10 +1,10 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class QuotationAction extends Model
 {
@@ -18,8 +18,8 @@ class QuotationAction extends Model
         'source',
         'build_id',
         'quotation_request_id',
-        'status',           // Added
-        'special_notes',   // Added
+        'status',
+        'special_notes',
     ];
 
     protected $casts = [
@@ -31,13 +31,18 @@ class QuotationAction extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public static function generateQuotationNumber()
     {
         $date = Carbon::now()->format('Ymd');
         $lastQuotation = self::where('quotation_number', 'like', "QTN-{$date}-%")
                             ->orderBy('quotation_number', 'desc')
                             ->first();
-        $sequence = $lastQuotation ? (int) substr($lastQuotation->quotation_number, -4) + 1 : 1;
+        $sequence = $lastQuotation ? (int)substr($lastQuotation->quotation_number, -4) + 1 : 1;
         return "QTN-{$date}-" . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 }
